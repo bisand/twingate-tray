@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -483,21 +484,39 @@ func handleResourcesShow() {
 func handleOpenWebAdmin() {
 	log.Println("Opening web admin...")
 	networkURL := appState.GetNetworkURL()
+	log.Printf("Network URL from state: %s", networkURL)
+
 	if networkURL == "" || networkURL == "-" {
 		// Try to fetch it
+		log.Println("Network URL not in state, fetching...")
 		info, err := twingate.GetNetworkInfo()
-		if err != nil || info.URL == "" || info.URL == "-" {
+		if err != nil {
+			log.Printf("Failed to get network info: %v", err)
+			sendNotification("Web Admin Error", fmt.Sprintf("Failed to get network info: %v", err))
+			return
+		}
+		if info.URL == "" || info.URL == "-" {
+			log.Println("Network URL not available from twingate CLI")
 			sendNotification("Web Admin Error", "Network URL not available")
 			return
 		}
 		networkURL = info.URL
 	}
 
+	// Ensure URL has proper scheme
+	if !strings.HasPrefix(networkURL, "http://") && !strings.HasPrefix(networkURL, "https://") {
+		networkURL = "https://" + networkURL
+	}
+
+	log.Printf("Opening URL: %s", networkURL)
+
 	// Open URL in default browser
 	cmd := exec.Command("xdg-open", networkURL)
 	if err := cmd.Start(); err != nil {
 		log.Printf("Failed to open web admin: %v", err)
 		sendNotification("Web Admin Error", fmt.Sprintf("Failed to open browser: %v", err))
+	} else {
+		log.Println("Browser opened successfully")
 	}
 }
 

@@ -747,27 +747,6 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 	// Build menu items as children of root
 	var children []dbus.Variant
 
-	// Connect or Disconnect
-	if connected {
-		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
-			"label":   dbus.MakeVariant("Disconnect"),
-			"enabled": dbus.MakeVariant(true),
-			"visible": dbus.MakeVariant(true),
-		}))
-	} else {
-		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
-			"label":   dbus.MakeVariant("Connect"),
-			"enabled": dbus.MakeVariant(true),
-			"visible": dbus.MakeVariant(true),
-		}))
-	}
-
-	// Separator
-	children = append(children, makeMenuItem(MenuItemSeparator1, map[string]dbus.Variant{
-		"type":    dbus.MakeVariant("separator"),
-		"visible": dbus.MakeVariant(true),
-	}))
-
 	// Network info (disabled, informational)
 	if networkName != "" && networkName != "-" {
 		children = append(children, makeMenuItem(MenuItemNetworkInfo, map[string]dbus.Variant{
@@ -796,6 +775,27 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 		"enabled": dbus.MakeVariant(false),
 		"visible": dbus.MakeVariant(true),
 	}))
+
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator1, map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Connect or Disconnect
+	if connected {
+		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant("Disconnect"),
+			"enabled": dbus.MakeVariant(true),
+			"visible": dbus.MakeVariant(true),
+		}))
+	} else {
+		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant("Connect"),
+			"enabled": dbus.MakeVariant(true),
+			"visible": dbus.MakeVariant(true),
+		}))
+	}
 
 	// Separator
 	children = append(children, makeMenuItem(MenuItemSeparator2, map[string]dbus.Variant{
