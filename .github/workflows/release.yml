@@ -48,7 +48,7 @@ jobs:
         run: |
           go build -v -o twingate-tray \
             -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
-            .
+            ./cmd/twingate-tray
 
       - name: Prepare tarball contents
         run: |
@@ -126,7 +126,7 @@ jobs:
         run: |
           go build -v -o twingate-tray \
             -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
-            .
+            ./cmd/twingate-tray
 
       - name: Create DEB package structure
         run: |
@@ -274,7 +274,7 @@ jobs:
         run: |
           go build -v -o twingate-tray \
             -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
-            .
+            ./cmd/twingate-tray
 
       - name: Create RPM package
         run: |
