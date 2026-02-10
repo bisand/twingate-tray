@@ -1,4 +1,4 @@
-package main
+package twingate
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// checkTwingateStatus returns true if connected to Twingate, false otherwise
-func checkTwingateStatus() (bool, error) {
+// CheckStatus returns true if connected to Twingate, false otherwise
+func CheckStatus() (bool, error) {
 	output, err := runCommand("twingate", "status")
 	if err != nil {
 		return false, fmt.Errorf("twingate status command failed: %w", err)
@@ -17,8 +17,8 @@ func checkTwingateStatus() (bool, error) {
 	return strings.HasPrefix(strings.TrimSpace(output), "online"), nil
 }
 
-// handleConnect connects to Twingate
-func handleConnect() error {
+// Connect connects to Twingate
+func Connect() error {
 	// Try pkexec first, fall back to sudo
 	if err := runPrivilegedCommand("twingate", "start"); err != nil {
 		return fmt.Errorf("failed to start twingate: %w", err)
@@ -30,8 +30,8 @@ func handleConnect() error {
 	return nil
 }
 
-// handleDisconnect disconnects from Twingate
-func handleDisconnect() error {
+// Disconnect disconnects from Twingate
+func Disconnect() error {
 	// Try pkexec first, fall back to sudo
 	if err := runPrivilegedCommand("twingate", "stop"); err != nil {
 		return fmt.Errorf("failed to stop twingate: %w", err)

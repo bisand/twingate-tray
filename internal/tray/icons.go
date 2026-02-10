@@ -1,4 +1,4 @@
-package main
+package tray
 
 import (
 	"math"
@@ -339,13 +339,13 @@ var faUnlockPolygons = [][][2]float64{
 	},
 }
 
-// generateIconARGB creates a Font Awesome lock/unlock icon as raw ARGB pixel data
-// in network byte order (big-endian). Size is 256x256.
+// generateIconARGBAntialiased creates a Font Awesome lock/unlock icon with
+// 2x supersampling for smoother edges. Returns ARGB data at 256x256.
 // Connected: white closed lock (fa:lock)
 // Disconnected: gray open lock (fa:unlock)
-func generateIconARGB(connected bool) ([]byte, int32, int32) {
-	const size = 256
-	data := make([]byte, size*size*4)
+func generateIconARGBAntialiased(connected bool) ([]byte, int32, int32) {
+	const hiSize = IconSize * Supersample
+	data := make([]byte, IconSize*IconSize*4)
 
 	var polygons [][][2]float64
 	var r, g, b uint8
@@ -358,46 +358,56 @@ func generateIconARGB(connected bool) ([]byte, int32, int32) {
 		r, g, b = 140, 140, 140 // Gray
 	}
 
-	// Scale polygons from normalized [0,1] to pixel coordinates.
-	// The FA lock viewBox is 448x512 (not square). We need to fit it centered
-	// in a 256x256 square with some padding.
-	padding := float64(size) * 0.08
-	available := float64(size) - 2*padding
+	padding := float64(hiSize) * IconPadding
+	available := float64(hiSize) - 2*padding
 
-	// FA lock viewBox aspect ratio: 448/512 = 0.875 (taller than wide)
-	// FA unlock viewBox: same 448/512
-	vbAspect := 448.0 / 512.0
 	var scaleW, scaleH, offsetX, offsetY float64
-
-	if vbAspect < 1.0 {
+	if ViewBoxAspect < 1.0 {
 		// Taller than wide: fit to height, center horizontally
 		scaleH = available
-		scaleW = available * vbAspect
+		scaleW = available * ViewBoxAspect
 		offsetX = padding + (available-scaleW)/2
 		offsetY = padding
 	} else {
 		// Wider than tall: fit to width, center vertically
 		scaleW = available
-		scaleH = available / vbAspect
+		scaleH = available / ViewBoxAspect
 		offsetX = padding
 		offsetY = padding + (available-scaleH)/2
 	}
 
-	// For each pixel, count polygon edge crossings (even-odd fill rule)
-	for y := 0; y < size; y++ {
-		fy := float64(y) + 0.5 // Sample at pixel center
-
-		for x := 0; x < size; x++ {
-			fx := float64(x) + 0.5 // Sample at pixel center
-
+	// Render at high resolution
+	hires := make([]bool, hiSize*hiSize)
+	for y := 0; y < hiSize; y++ {
+		fy := float64(y) + 0.5
+		for x := 0; x < hiSize; x++ {
+			fx := float64(x) + 0.5
 			crossings := 0
 			for _, poly := range polygons {
 				crossings += countCrossings(poly, fx, fy, scaleW, scaleH, offsetX, offsetY)
 			}
-
 			if crossings%2 == 1 {
-				idx := (y*size + x) * 4
-				data[idx] = 255 // A
+				hires[y*hiSize+x] = true
+			}
+		}
+	}
+
+	// Downsample to final size
+	ss2 := float64(Supersample * Supersample)
+	for y := 0; y < IconSize; y++ {
+		for x := 0; x < IconSize; x++ {
+			count := 0
+			for dy := 0; dy < Supersample; dy++ {
+				for dx := 0; dx < Supersample; dx++ {
+					if hires[(y*Supersample+dy)*hiSize+(x*Supersample+dx)] {
+						count++
+					}
+				}
+			}
+			if count > 0 {
+				alpha := uint8(math.Round(255 * float64(count) / ss2))
+				idx := (y*IconSize + x) * 4
+				data[idx] = alpha
 				data[idx+1] = r
 				data[idx+2] = g
 				data[idx+3] = b
@@ -405,7 +415,7 @@ func generateIconARGB(connected bool) ([]byte, int32, int32) {
 		}
 	}
 
-	return data, int32(size), int32(size)
+	return data, int32(IconSize), int32(IconSize)
 }
 
 // countCrossings counts how many times a ray from (px, py) going right
@@ -439,82 +449,4 @@ func countCrossings(poly [][2]float64, px, py, scaleW, scaleH, offsetX, offsetY 
 	}
 
 	return crossings
-}
-
-// generateIconARGBAntialiased creates a Font Awesome lock/unlock icon with
-// 2x supersampling for smoother edges. Returns ARGB data at 256x256.
-func generateIconARGBAntialiased(connected bool) ([]byte, int32, int32) {
-	const size = 256
-	const supersample = 2
-	const hiSize = size * supersample
-	data := make([]byte, size*size*4)
-
-	var polygons [][][2]float64
-	var r, g, b uint8
-
-	if connected {
-		polygons = faLockPolygons
-		r, g, b = 255, 255, 255
-	} else {
-		polygons = faUnlockPolygons
-		r, g, b = 140, 140, 140
-	}
-
-	padding := float64(hiSize) * 0.08
-	available := float64(hiSize) - 2*padding
-	vbAspect := 448.0 / 512.0
-
-	var scaleW, scaleH, offsetX, offsetY float64
-	if vbAspect < 1.0 {
-		scaleH = available
-		scaleW = available * vbAspect
-		offsetX = padding + (available-scaleW)/2
-		offsetY = padding
-	} else {
-		scaleW = available
-		scaleH = available / vbAspect
-		offsetX = padding
-		offsetY = padding + (available-scaleH)/2
-	}
-
-	// Render at high resolution
-	hires := make([]bool, hiSize*hiSize)
-	for y := 0; y < hiSize; y++ {
-		fy := float64(y) + 0.5
-		for x := 0; x < hiSize; x++ {
-			fx := float64(x) + 0.5
-			crossings := 0
-			for _, poly := range polygons {
-				crossings += countCrossings(poly, fx, fy, scaleW, scaleH, offsetX, offsetY)
-			}
-			if crossings%2 == 1 {
-				hires[y*hiSize+x] = true
-			}
-		}
-	}
-
-	// Downsample to final size
-	ss2 := float64(supersample * supersample)
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			count := 0
-			for dy := 0; dy < supersample; dy++ {
-				for dx := 0; dx < supersample; dx++ {
-					if hires[(y*supersample+dy)*hiSize+(x*supersample+dx)] {
-						count++
-					}
-				}
-			}
-			if count > 0 {
-				alpha := uint8(math.Round(255 * float64(count) / ss2))
-				idx := (y*size + x) * 4
-				data[idx] = alpha
-				data[idx+1] = r
-				data[idx+2] = g
-				data[idx+3] = b
-			}
-		}
-	}
-
-	return data, int32(size), int32(size)
 }

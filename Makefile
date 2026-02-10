@@ -4,6 +4,7 @@
 BINARY_NAME=twingate-tray
 GO=go
 INSTALL_PATH=/usr/local/bin
+CMD_PATH=./cmd/twingate-tray
 
 help:
 	@echo "Twingate Tray - Build Targets"
@@ -17,7 +18,7 @@ help:
 	@echo ""
 
 build:
-	$(GO) build -o $(BINARY_NAME) .
+	$(GO) build -o $(BINARY_NAME) $(CMD_PATH)
 	@echo "Build complete: $(BINARY_NAME)"
 
 clean:

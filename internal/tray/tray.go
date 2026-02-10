@@ -1,4 +1,4 @@
-package main
+package tray
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ type SystemTray struct {
 	connected        bool
 	onConnect        func()
 	onDisconnect     func()
+	onConnectionInfo func()
 	onQuit           func()
 	serviceName      string
 	objectPath       dbus.ObjectPath
@@ -31,22 +32,23 @@ type SystemTray struct {
 }
 
 // NewSystemTray creates a new system tray instance
-func NewSystemTray(onConnect, onDisconnect, onQuit func()) (*SystemTray, error) {
+func NewSystemTray(onConnect, onDisconnect, onConnectionInfo, onQuit func()) (*SystemTray, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to D-Bus: %w", err)
 	}
 
 	st := &SystemTray{
-		conn:         conn,
-		connected:    false,
-		onConnect:    onConnect,
-		onDisconnect: onDisconnect,
-		onQuit:       onQuit,
-		serviceName:  "org.twingate.StatusNotifierItem",
-		objectPath:   "/StatusNotifierItem",
-		menuPath:     "/MenuBar",
-		menuRevision: 1,
+		conn:             conn,
+		connected:        false,
+		onConnect:        onConnect,
+		onDisconnect:     onDisconnect,
+		onConnectionInfo: onConnectionInfo,
+		onQuit:           onQuit,
+		serviceName:      "org.twingate.StatusNotifierItem",
+		objectPath:       "/StatusNotifierItem",
+		menuPath:         "/MenuBar",
+		menuRevision:     1,
 	}
 
 	// Generate initial icon
@@ -493,53 +495,53 @@ func (st *SystemTray) getMenuItems() map[int32]map[string]dbus.Variant {
 		"children-display": dbus.MakeVariant("submenu"),
 	}
 
-	// Item 1: Connect or Disconnect
+	// Connect or Disconnect
 	if connected {
-		items[1] = map[string]dbus.Variant{
+		items[MenuItemConnect] = map[string]dbus.Variant{
 			"label":   dbus.MakeVariant("Disconnect"),
 			"enabled": dbus.MakeVariant(true),
 			"visible": dbus.MakeVariant(true),
 		}
 	} else {
-		items[1] = map[string]dbus.Variant{
+		items[MenuItemConnect] = map[string]dbus.Variant{
 			"label":   dbus.MakeVariant("Connect"),
 			"enabled": dbus.MakeVariant(true),
 			"visible": dbus.MakeVariant(true),
 		}
 	}
 
-	// Item 2: Separator
-	items[2] = map[string]dbus.Variant{
+	// Separator
+	items[MenuItemSeparator1] = map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}
 
-	// Item 3: Connection Info
-	items[3] = map[string]dbus.Variant{
+	// Connection Info
+	items[MenuItemConnectionInfo] = map[string]dbus.Variant{
 		"label":   dbus.MakeVariant("Connection Info..."),
 		"enabled": dbus.MakeVariant(true),
 		"visible": dbus.MakeVariant(true),
 	}
 
-	// Item 4: Status (informational, disabled)
+	// Status (informational, disabled)
 	statusText := "Status: Disconnected"
 	if connected {
 		statusText = "Status: Connected"
 	}
-	items[4] = map[string]dbus.Variant{
+	items[MenuItemStatus] = map[string]dbus.Variant{
 		"label":   dbus.MakeVariant(statusText),
 		"enabled": dbus.MakeVariant(false),
 		"visible": dbus.MakeVariant(true),
 	}
 
-	// Item 5: Separator
-	items[5] = map[string]dbus.Variant{
+	// Separator
+	items[MenuItemSeparator2] = map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}
 
-	// Item 6: Quit
-	items[6] = map[string]dbus.Variant{
+	// Quit
+	items[MenuItemQuit] = map[string]dbus.Variant{
 		"label":   dbus.MakeVariant("Quit"),
 		"enabled": dbus.MakeVariant(true),
 		"visible": dbus.MakeVariant(true),
@@ -560,49 +562,49 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 	// Build menu items as children of root
 	var children []dbus.Variant
 
-	// Item 1: Connect or Disconnect
+	// Connect or Disconnect
 	connectLabel := "Connect"
 	if connected {
 		connectLabel = "Disconnect"
 	}
-	children = append(children, makeMenuItem(1, map[string]dbus.Variant{
+	children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
 		"label":   dbus.MakeVariant(connectLabel),
 		"enabled": dbus.MakeVariant(true),
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Item 2: Separator
-	children = append(children, makeMenuItem(2, map[string]dbus.Variant{
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator1, map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Item 3: Connection Info
-	children = append(children, makeMenuItem(3, map[string]dbus.Variant{
+	// Connection Info
+	children = append(children, makeMenuItem(MenuItemConnectionInfo, map[string]dbus.Variant{
 		"label":   dbus.MakeVariant("Connection Info..."),
 		"enabled": dbus.MakeVariant(true),
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Item 4: Status (disabled, informational)
+	// Status (disabled, informational)
 	statusText := "Status: Disconnected"
 	if connected {
 		statusText = "Status: Connected"
 	}
-	children = append(children, makeMenuItem(4, map[string]dbus.Variant{
+	children = append(children, makeMenuItem(MenuItemStatus, map[string]dbus.Variant{
 		"label":   dbus.MakeVariant(statusText),
 		"enabled": dbus.MakeVariant(false),
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Item 5: Separator
-	children = append(children, makeMenuItem(5, map[string]dbus.Variant{
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator2, map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Item 6: Quit
-	children = append(children, makeMenuItem(6, map[string]dbus.Variant{
+	// Quit
+	children = append(children, makeMenuItem(MenuItemQuit, map[string]dbus.Variant{
 		"label":   dbus.MakeVariant("Quit"),
 		"enabled": dbus.MakeVariant(true),
 		"visible": dbus.MakeVariant(true),
@@ -629,7 +631,7 @@ func (st *SystemTray) Event(id int32, eventId string, data dbus.Variant, timesta
 	}
 
 	switch id {
-	case 1: // Connect/Disconnect
+	case MenuItemConnect: // Connect/Disconnect
 		st.mu.RLock()
 		connected := st.connected
 		st.mu.RUnlock()
@@ -641,13 +643,10 @@ func (st *SystemTray) Event(id int32, eventId string, data dbus.Variant, timesta
 			log.Println("Menu: Connect clicked")
 			go st.onConnect()
 		}
-	case 3: // Connection Info
+	case MenuItemConnectionInfo: // Connection Info
 		log.Println("Menu: Connection Info clicked")
-		go func() {
-			info := gatherConnectionInfo()
-			showStatusDialog(info)
-		}()
-	case 6: // Quit
+		go st.onConnectionInfo()
+	case MenuItemQuit: // Quit
 		log.Println("Menu: Quit clicked")
 		go st.onQuit()
 	}

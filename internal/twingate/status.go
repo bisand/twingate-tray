@@ -1,4 +1,4 @@
-package main
+package twingate
 
 import (
 	"fmt"
@@ -309,7 +309,9 @@ func showStatusDialog(info ConnectionInfo) {
 		buttonClicked := strings.TrimSpace(string(output))
 		if buttonClicked == "Copy to Clipboard" {
 			copyToClipboard(text)
-			sendNotification("Twingate", "Connection info copied to clipboard")
+			// Send notification
+			cmd := exec.Command("notify-send", "-t", "5000", "Twingate", "Connection info copied to clipboard")
+			_ = cmd.Run() // Ignore errors - notification is optional
 			// Re-show the dialog so the user can dismiss with OK
 			continue
 		}
@@ -416,4 +418,10 @@ func formatBytes(bytes uint64) string {
 	default:
 		return fmt.Sprintf("%d B", bytes)
 	}
+}
+
+// ShowConnectionInfo gathers and displays the connection information dialog
+func ShowConnectionInfo() {
+	info := gatherConnectionInfo()
+	showStatusDialog(info)
 }
