@@ -322,8 +322,6 @@ jobs:
           Recommends:     polkit
           Suggests:       gnome-shell-extension-appindicator
           
-          BuildArch:      ${{ matrix.rpmarch }}
-          
           %description
           A lightweight system tray indicator for Twingate VPN on Linux.
           Displays real-time connection status with a native context menu
