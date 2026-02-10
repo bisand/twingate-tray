@@ -27,6 +27,7 @@ type SystemTray struct {
 	onDiagReport     func()
 	onAutoConnToggle func(bool)
 	onMenuOpening    func()
+	onAbout          func()
 	onQuit           func()
 	serviceName      string
 	objectPath       dbus.ObjectPath
@@ -62,6 +63,7 @@ type CallbackHandlers struct {
 	OnDiagReport       func()
 	OnAutoConnToggle   func(bool)
 	OnMenuOpening      func()
+	OnAbout            func()
 	OnQuit             func()
 	InitialAutoConnect bool // Initial auto-connect state from config
 }
@@ -89,6 +91,7 @@ func NewSystemTray(handlers CallbackHandlers) (*SystemTray, error) {
 		onDiagReport:     handlers.OnDiagReport,
 		onAutoConnToggle: handlers.OnAutoConnToggle,
 		onMenuOpening:    handlers.OnMenuOpening,
+		onAbout:          handlers.OnAbout,
 		onQuit:           handlers.OnQuit,
 		serviceName:      "org.twingate.StatusNotifierItem",
 		objectPath:       "/StatusNotifierItem",
@@ -874,6 +877,19 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 		"visible": dbus.MakeVariant(true),
 	}))
 
+	// About
+	children = append(children, makeMenuItem(MenuItemAbout, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("About"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator6, map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}))
+
 	// Quit
 	children = append(children, makeMenuItem(MenuItemQuit, map[string]dbus.Variant{
 		"label":   dbus.MakeVariant("Quit"),
@@ -961,6 +977,12 @@ func (st *SystemTray) Event(id int32, eventId string, data dbus.Variant, timesta
 		}
 		// Update local state
 		st.SetAutoConnect(newState)
+
+	case MenuItemAbout: // About
+		log.Println("Menu: About clicked")
+		if st.onAbout != nil {
+			go st.onAbout()
+		}
 
 	case MenuItemQuit: // Quit
 		log.Println("Menu: Quit clicked")

@@ -18,15 +18,25 @@ func GetExitNodeStatus() (*ExitNodeStatus, error) {
 
 	// Check if exit node routing is active by listing nodes
 	output, err := runCommand("twingate", "exit-node", "list", "-d")
+
+	// Handle the output even if there's an error, since "no exit nodes" returns exit code 1
+	output = strings.TrimSpace(output)
+
+	// Check for "no exit nodes" message - this is not an error condition
+	if strings.Contains(strings.ToLower(output), "no exit nodes") {
+		return status, nil // Return empty status, not an error
+	}
+
+	// If there was an error and it's NOT the "no exit nodes" case, return the error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get exit node list: %w", err)
 	}
 
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "Name") {
-			continue // Skip header
+			continue // Skip empty lines and header
 		}
 
 		// Parse TSV: Name, Location, Active

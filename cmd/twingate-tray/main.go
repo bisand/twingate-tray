@@ -56,6 +56,7 @@ func startDaemon() {
 		OnDiagReport:       handleDiagnosticReport,
 		OnAutoConnToggle:   handleAutoConnectToggle,
 		OnMenuOpening:      handleMenuOpening,
+		OnAbout:            handleAbout,
 		OnQuit:             handleQuit,
 		InitialAutoConnect: autoConnectEnabled,
 	})
@@ -334,8 +335,11 @@ func handleExitNodeList() {
 		return
 	}
 
+	log.Printf("Exit node status: enabled=%v, current=%s, available=%d", status.Enabled, status.CurrentNode, len(status.AvailableNodes))
+
 	if len(status.AvailableNodes) == 0 {
-		exec.Command("zenity", "--info", "--title=Exit Nodes", "--text=No exit nodes available", "--width=300").Run()
+		log.Println("No exit nodes available, showing info dialog")
+		exec.Command("zenity", "--info", "--title=Exit Nodes", "--text=No exit nodes available for your network", "--width=300").Run()
 		return
 	}
 
@@ -368,19 +372,20 @@ func handleExitNodeList() {
 		return
 	}
 
-	selected := string(output)
-	selected = selected[:len(selected)-1] // Remove trailing newline
+	selected := strings.TrimSpace(string(output))
+	if selected == "" {
+		return // User cancelled or selected nothing
+	}
 
 	if selected == "Start Exit Node" {
 		handleExitNodeStart()
 	} else if selected == "Stop Exit Node" {
 		handleExitNodeStop()
-	} else {
-		// Extract node name (remove " (active)" if present)
-		nodeName := selected
-		if idx := len(selected) - 9; idx > 0 && selected[idx:] == " (active)" {
-			nodeName = selected[:idx]
-		}
+	} else if selected != "---" {
+		// Extract node name (remove " (active)" suffix if present)
+		nodeName := strings.TrimSuffix(selected, " (active)")
+		log.Printf("Switching to exit node: %s", nodeName)
+
 		// Switch to the selected node
 		if err := twingate.SwitchExitNode(nodeName); err != nil {
 			log.Printf("Failed to switch exit node: %v", err)
@@ -415,8 +420,10 @@ func handleExitNodeSwitch() {
 		return
 	}
 
-	nodeName := string(output)
-	nodeName = nodeName[:len(nodeName)-1] // Remove trailing newline
+	nodeName := strings.TrimSpace(string(output))
+	if nodeName == "" {
+		return // User cancelled or selected nothing
+	}
 
 	if err := twingate.SwitchExitNode(nodeName); err != nil {
 		log.Printf("Failed to switch exit node: %v", err)
@@ -564,6 +571,13 @@ func handleMenuOpening() {
 	autoConnectEnabled := twingate.IsAutoConnectEnabled()
 	if systemTray != nil {
 		systemTray.SetAutoConnect(autoConnectEnabled)
+	}
+}
+
+func handleAbout() {
+	log.Println("Showing About dialog...")
+	if err := app.ShowAbout(); err != nil {
+		log.Printf("Failed to show About dialog: %v", err)
 	}
 }
 

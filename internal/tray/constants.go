@@ -19,7 +19,9 @@ const (
 	MenuItemDiagReport     = 15
 	MenuItemAutoConnect    = 16
 	MenuItemSeparator5     = 17
-	MenuItemQuit           = 18
+	MenuItemAbout          = 18
+	MenuItemSeparator6     = 19
+	MenuItemQuit           = 20
 
 	// Exit node submenu items (100-199)
 	MenuItemExitNodeStart  = 101
