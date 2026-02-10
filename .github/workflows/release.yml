@@ -51,8 +51,15 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
         run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          
           go build -v -o twingate-tray \
-            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            -ldflags="-s -w \
+              -X github.com/bisand/twingate-tray/internal/app.Version=${VERSION} \
+              -X github.com/bisand/twingate-tray/internal/app.GitCommit=${COMMIT} \
+              -X github.com/bisand/twingate-tray/internal/app.BuildDate=${BUILD_DATE}" \
             ./cmd/twingate-tray
 
       - name: Prepare tarball contents
@@ -134,8 +141,15 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
         run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          
           go build -v -o twingate-tray \
-            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            -ldflags="-s -w \
+              -X github.com/bisand/twingate-tray/internal/app.Version=${VERSION} \
+              -X github.com/bisand/twingate-tray/internal/app.GitCommit=${COMMIT} \
+              -X github.com/bisand/twingate-tray/internal/app.BuildDate=${BUILD_DATE}" \
             ./cmd/twingate-tray
 
       - name: Create DEB package structure
@@ -352,8 +366,15 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
         run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          
           go build -v -o twingate-tray \
-            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            -ldflags="-s -w \
+              -X github.com/bisand/twingate-tray/internal/app.Version=${VERSION} \
+              -X github.com/bisand/twingate-tray/internal/app.GitCommit=${COMMIT} \
+              -X github.com/bisand/twingate-tray/internal/app.BuildDate=${BUILD_DATE}" \
             ./cmd/twingate-tray
 
       - name: Create RPM package

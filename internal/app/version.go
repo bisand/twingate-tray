@@ -1,11 +1,22 @@
 package app
 
+// Version information
+// These variables can be overridden at build time using -ldflags
+var (
+	// Version is the current application version
+	// Override with: go build -ldflags "-X github.com/bisand/twingate-tray/internal/app.Version=1.2.3"
+	Version = "dev"
+
+	// GitCommit is the git commit SHA
+	GitCommit = "unknown"
+
+	// BuildDate is when the binary was built
+	BuildDate = "unknown"
+)
+
 const (
 	// AppName is the application name
 	AppName = "Twingate Tray"
-
-	// Version is the current application version
-	Version = "1.0.0"
 
 	// Description is a short description of the application
 	Description = "System Tray Indicator for Twingate VPN on Linux"
@@ -29,7 +40,24 @@ Desktop notifications`
 
 // GetFullVersion returns the formatted version string
 func GetFullVersion() string {
-	return AppName + " v" + Version
+	version := Version
+	// Remove leading 'v' if present since we'll add it
+	if len(version) > 0 && version[0] == 'v' {
+		version = version[1:]
+	}
+	return AppName + " v" + version
+}
+
+// GetVersionInfo returns detailed version information
+func GetVersionInfo() string {
+	info := "Version: " + Version
+	if GitCommit != "unknown" {
+		info += "\nCommit: " + GitCommit
+	}
+	if BuildDate != "unknown" {
+		info += "\nBuilt: " + BuildDate
+	}
+	return info
 }
 
 // GetAboutText returns the complete about text for display

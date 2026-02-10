@@ -143,6 +143,10 @@ func handleCLI(args []string) {
 	case "help", "-h", "--help":
 		printUsage()
 
+	case "version", "-v", "--version":
+		fmt.Println(app.GetFullVersion())
+		fmt.Println(app.GetVersionInfo())
+
 	default:
 		fmt.Printf("Unknown command: %s\n", args[0])
 		printUsage()
@@ -159,6 +163,7 @@ Usage:
   twingate-tray connect            # Connect to Twingate
   twingate-tray disconnect         # Disconnect from Twingate
   twingate-tray daemon             # Start as daemon with system tray
+  twingate-tray version            # Show version information
   twingate-tray help               # Show this help message`)
 }
 
