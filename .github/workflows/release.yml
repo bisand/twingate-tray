@@ -340,21 +340,21 @@ jobs:
           %install
           rm -rf %{buildroot}
           mkdir -p %{buildroot}/usr/local/bin
-          mkdir -p %{buildroot}%{_userunitdir}
-          mkdir -p %{buildroot}%{_docdir}/%{name}
+          mkdir -p %{buildroot}/usr/lib/systemd/user
+          mkdir -p %{buildroot}/usr/share/doc/%{name}
           
           install -m 755 twingate-tray %{buildroot}/usr/local/bin/
-          install -m 644 twingate-tray.service %{buildroot}%{_userunitdir}/
-          install -m 644 README.md %{buildroot}%{_docdir}/%{name}/
-          install -m 644 INSTALL.md %{buildroot}%{_docdir}/%{name}/
-          install -m 644 USAGE_GUIDE.md %{buildroot}%{_docdir}/%{name}/
+          install -m 644 twingate-tray.service %{buildroot}/usr/lib/systemd/user/
+          install -m 644 README.md %{buildroot}/usr/share/doc/%{name}/
+          install -m 644 INSTALL.md %{buildroot}/usr/share/doc/%{name}/
+          install -m 644 USAGE_GUIDE.md %{buildroot}/usr/share/doc/%{name}/
           
           %files
           /usr/local/bin/twingate-tray
-          %{_userunitdir}/twingate-tray.service
-          %{_docdir}/%{name}/README.md
-          %{_docdir}/%{name}/INSTALL.md
-          %{_docdir}/%{name}/USAGE_GUIDE.md
+          /usr/lib/systemd/user/twingate-tray.service
+          /usr/share/doc/%{name}/README.md
+          /usr/share/doc/%{name}/INSTALL.md
+          /usr/share/doc/%{name}/USAGE_GUIDE.md
           
           %post
           echo "========================================="
@@ -386,7 +386,7 @@ jobs:
           echo "  Enable service:      systemctl --user enable --now twingate-tray"
           echo "  Check status:        systemctl --user status twingate-tray"
           echo ""
-          echo "Documentation: %{_docdir}/%{name}/"
+          echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
           
           %changelog
