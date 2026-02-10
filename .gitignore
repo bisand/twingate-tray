@@ -1,0 +1,26 @@
+# Binaries
+twingate-indicator
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build cache
+.cache/
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+*.cover
+coverage.out
+
+# Temporary files
+*.tmp
+build.log
