@@ -1,12 +1,12 @@
 .PHONY: build clean install uninstall test help
 
 # Variables
-BINARY_NAME=twingate-indicator
+BINARY_NAME=twingate-tray
 GO=go
 INSTALL_PATH=/usr/local/bin
 
 help:
-	@echo "Twingate Indicator - Build Targets"
+	@echo "Twingate Tray - Build Targets"
 	@echo ""
 	@echo "  make build              Build the binary"
 	@echo "  make clean              Remove compiled binary"

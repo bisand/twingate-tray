@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Daemon mode with system tray
-	log.Println("Starting Twingate indicator with system tray...")
+	log.Println("Starting Twingate tray...")
 
 	appState.connected = false
 	appState.lastErr = ""
@@ -124,7 +124,7 @@ func handleCLI(args []string) {
 
 	case "daemon":
 		// Start as daemon with system tray
-		log.Println("Starting Twingate indicator daemon...")
+		log.Println("Starting Twingate tray daemon...")
 		appState.connected = false
 		appState.lastErr = ""
 
@@ -184,15 +184,15 @@ func handleCLI(args []string) {
 }
 
 func printUsage() {
-	fmt.Println(`Twingate Indicator - System tray indicator for Twingate
+	fmt.Println(`Twingate Tray - System tray indicator for Twingate
 
 Usage:
-  twingate-indicator                    # Run with system tray
-  twingate-indicator status             # Check connection status
-  twingate-indicator connect            # Connect to Twingate
-  twingate-indicator disconnect         # Disconnect from Twingate
-  twingate-indicator daemon             # Start as daemon with system tray
-  twingate-indicator help               # Show this help message`)
+  twingate-tray                    # Run with system tray
+  twingate-tray status             # Check connection status
+  twingate-tray connect            # Connect to Twingate
+  twingate-tray disconnect         # Disconnect from Twingate
+  twingate-tray daemon             # Start as daemon with system tray
+  twingate-tray help               # Show this help message`)
 }
 
 func monitorStatus() {

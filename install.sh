@@ -1,16 +1,16 @@
 #!/bin/bash
-# Twingate Indicator - Installation Script
+# Twingate Tray - Installation Script
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BINARY="$SCRIPT_DIR/twingate-indicator"
+BINARY="$SCRIPT_DIR/twingate-tray"
 INSTALL_DIR="/usr/local/bin"
 SERVICE_DIR="$HOME/.config/systemd/user"
 AUTOSTART_DIR="$HOME/.config/autostart"
 
 echo "========================================="
-echo "Twingate Indicator - Installation"
+echo "Twingate Tray - Installation"
 echo "========================================="
 echo ""
 
@@ -38,20 +38,20 @@ case $choice in
 	echo "Installing as systemd user service..."
 
 	# Copy binary
-	sudo cp "$BINARY" "$INSTALL_DIR/twingate-indicator"
-	sudo chmod +x "$INSTALL_DIR/twingate-indicator"
-	echo "✓ Binary copied to $INSTALL_DIR/twingate-indicator"
+	sudo cp "$BINARY" "$INSTALL_DIR/twingate-tray"
+	sudo chmod +x "$INSTALL_DIR/twingate-tray"
+	echo "✓ Binary copied to $INSTALL_DIR/twingate-tray"
 
 	# Create service file
 	mkdir -p "$SERVICE_DIR"
-	cat >"$SERVICE_DIR/twingate-indicator.service" <<'EOF'
+	cat >"$SERVICE_DIR/twingate-tray.service" <<'EOF'
 [Unit]
 Description=Twingate System Tray Indicator
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/twingate-indicator
+ExecStart=/usr/local/bin/twingate-tray
 Restart=on-failure
 RestartSec=5
 
@@ -62,20 +62,20 @@ EOF
 
 	# Enable and start
 	systemctl --user daemon-reload
-	systemctl --user enable twingate-indicator.service
-	systemctl --user start twingate-indicator.service
+	systemctl --user enable twingate-tray.service
+	systemctl --user start twingate-tray.service
 
 	echo ""
 	echo "✓ Installation complete!"
 	echo ""
 	echo "Service status:"
-	systemctl --user status twingate-indicator.service --no-pager -l
+	systemctl --user status twingate-tray.service --no-pager -l
 	echo ""
 	echo "Useful commands:"
-	echo "  systemctl --user status twingate-indicator.service"
-	echo "  systemctl --user restart twingate-indicator.service"
-	echo "  systemctl --user stop twingate-indicator.service"
-	echo "  journalctl --user -u twingate-indicator.service -f"
+	echo "  systemctl --user status twingate-tray.service"
+	echo "  systemctl --user restart twingate-tray.service"
+	echo "  systemctl --user stop twingate-tray.service"
+	echo "  journalctl --user -u twingate-tray.service -f"
 	;;
 
 2)
@@ -83,18 +83,18 @@ EOF
 	echo "Installing as desktop autostart..."
 
 	# Copy binary
-	sudo cp "$BINARY" "$INSTALL_DIR/twingate-indicator"
-	sudo chmod +x "$INSTALL_DIR/twingate-indicator"
-	echo "✓ Binary copied to $INSTALL_DIR/twingate-indicator"
+	sudo cp "$BINARY" "$INSTALL_DIR/twingate-tray"
+	sudo chmod +x "$INSTALL_DIR/twingate-tray"
+	echo "✓ Binary copied to $INSTALL_DIR/twingate-tray"
 
 	# Create desktop entry
 	mkdir -p "$AUTOSTART_DIR"
-	cat >"$AUTOSTART_DIR/twingate-indicator.desktop" <<'EOF'
+	cat >"$AUTOSTART_DIR/twingate-tray.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Twingate Indicator
+Name=Twingate Tray
 Comment=System tray indicator for Twingate VPN
-Exec=/usr/local/bin/twingate-indicator
+Exec=/usr/local/bin/twingate-tray
 Icon=network-vpn
 Terminal=false
 Categories=Network;
@@ -104,7 +104,7 @@ EOF
 	echo "✓ Autostart entry created"
 
 	# Start it now
-	/usr/local/bin/twingate-indicator &
+	/usr/local/bin/twingate-tray &
 	sleep 2
 
 	echo ""
@@ -112,24 +112,24 @@ EOF
 	echo ""
 	echo "The indicator is now running and will start automatically on login."
 	echo ""
-	echo "To stop: killall twingate-indicator"
-	echo "To disable autostart: rm $AUTOSTART_DIR/twingate-indicator.desktop"
+	echo "To stop: killall twingate-tray"
+	echo "To disable autostart: rm $AUTOSTART_DIR/twingate-tray.desktop"
 	;;
 
 3)
 	echo ""
 	echo "Copying binary to $INSTALL_DIR..."
-	sudo cp "$BINARY" "$INSTALL_DIR/twingate-indicator"
-	sudo chmod +x "$INSTALL_DIR/twingate-indicator"
+	sudo cp "$BINARY" "$INSTALL_DIR/twingate-tray"
+	sudo chmod +x "$INSTALL_DIR/twingate-tray"
 
 	echo ""
 	echo "✓ Installation complete!"
 	echo ""
 	echo "Run manually:"
-	echo "  twingate-indicator"
+	echo "  twingate-tray"
 	echo ""
 	echo "Run in background:"
-	echo "  nohup twingate-indicator > /tmp/twingate.log 2>&1 &"
+	echo "  nohup twingate-tray > /tmp/twingate.log 2>&1 &"
 	;;
 
 4)

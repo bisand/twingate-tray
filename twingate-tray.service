@@ -1,12 +1,12 @@
 [Unit]
-Description=Twingate Connection Indicator
+Description=Twingate System Tray Indicator
 Documentation=https://www.twingate.com/docs/linux
-After=network-online.target
-Wants=network-online.target
+After=graphical-session.target
+Wants=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/twingate-indicator daemon
+ExecStart=%h/.local/bin/twingate-tray
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

@@ -1,4 +1,5 @@
 # Binaries
+twingate-tray
 twingate-indicator
 *.exe
 *.dll
