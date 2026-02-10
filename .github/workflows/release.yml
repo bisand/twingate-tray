@@ -333,7 +333,7 @@ jobs:
           # Create source tarball
           mkdir -p twingate-tray-${VERSION}
           cp twingate-tray twingate-tray-${VERSION}/
-          cp README.md INSTALL.MD USAGE_GUIDE.md twingate-tray.service twingate-tray-${VERSION}/
+          cp README.md INSTALL.md USAGE_GUIDE.md twingate-tray.service twingate-tray-${VERSION}/
           
           # Create XDG autostart desktop file
           cat > twingate-tray-${VERSION}/twingate-tray.desktop << 'DESKTOP_EOF'
