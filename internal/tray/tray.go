@@ -17,6 +17,16 @@ type SystemTray struct {
 	onConnect        func()
 	onDisconnect     func()
 	onConnectionInfo func()
+	onRefreshStatus  func()
+	onExitNodeStart  func()
+	onExitNodeStop   func()
+	onExitNodeList   func()
+	onExitNodeSwitch func()
+	onResourcesShow  func()
+	onOpenWebAdmin   func()
+	onDiagReport     func()
+	onAutoConnToggle func(bool)
+	onMenuOpening    func()
 	onQuit           func()
 	serviceName      string
 	objectPath       dbus.ObjectPath
@@ -29,10 +39,34 @@ type SystemTray struct {
 	iconData   []byte
 	iconWidth  int32
 	iconHeight int32
+
+	// Menu state
+	networkName    string
+	networkURL     string
+	connectionTime string
+	autoConnect    bool
+}
+
+// CallbackHandlers groups all callback functions for menu actions
+type CallbackHandlers struct {
+	OnConnect        func()
+	OnDisconnect     func()
+	OnConnectionInfo func()
+	OnRefreshStatus  func()
+	OnExitNodeStart  func()
+	OnExitNodeStop   func()
+	OnExitNodeList   func()
+	OnExitNodeSwitch func()
+	OnResourcesShow  func()
+	OnOpenWebAdmin   func()
+	OnDiagReport     func()
+	OnAutoConnToggle func(bool)
+	OnMenuOpening    func()
+	OnQuit           func()
 }
 
 // NewSystemTray creates a new system tray instance
-func NewSystemTray(onConnect, onDisconnect, onConnectionInfo, onQuit func()) (*SystemTray, error) {
+func NewSystemTray(handlers CallbackHandlers) (*SystemTray, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to D-Bus: %w", err)
@@ -41,14 +75,28 @@ func NewSystemTray(onConnect, onDisconnect, onConnectionInfo, onQuit func()) (*S
 	st := &SystemTray{
 		conn:             conn,
 		connected:        false,
-		onConnect:        onConnect,
-		onDisconnect:     onDisconnect,
-		onConnectionInfo: onConnectionInfo,
-		onQuit:           onQuit,
+		onConnect:        handlers.OnConnect,
+		onDisconnect:     handlers.OnDisconnect,
+		onConnectionInfo: handlers.OnConnectionInfo,
+		onRefreshStatus:  handlers.OnRefreshStatus,
+		onExitNodeStart:  handlers.OnExitNodeStart,
+		onExitNodeStop:   handlers.OnExitNodeStop,
+		onExitNodeList:   handlers.OnExitNodeList,
+		onExitNodeSwitch: handlers.OnExitNodeSwitch,
+		onResourcesShow:  handlers.OnResourcesShow,
+		onOpenWebAdmin:   handlers.OnOpenWebAdmin,
+		onDiagReport:     handlers.OnDiagReport,
+		onAutoConnToggle: handlers.OnAutoConnToggle,
+		onMenuOpening:    handlers.OnMenuOpening,
+		onQuit:           handlers.OnQuit,
 		serviceName:      "org.twingate.StatusNotifierItem",
 		objectPath:       "/StatusNotifierItem",
 		menuPath:         "/MenuBar",
 		menuRevision:     1,
+		networkName:      "-",
+		networkURL:       "",
+		connectionTime:   "-",
+		autoConnect:      false,
 	}
 
 	// Generate initial icon
@@ -337,6 +385,54 @@ func (st *SystemTray) UpdateStatus(connected bool) {
 	log.Printf("Tray status updated: %s", tooltip)
 }
 
+// UpdateNetworkInfo updates the network name and URL displayed in the menu
+func (st *SystemTray) UpdateNetworkInfo(name, url string) {
+	st.mu.Lock()
+	st.networkName = name
+	st.networkURL = url
+	st.menuRevision++
+	revision := st.menuRevision
+	st.mu.Unlock()
+
+	// Emit menu layout changed
+	st.conn.Emit(st.menuPath, "com.canonical.dbusmenu.LayoutUpdated", revision, int32(0))
+}
+
+// UpdateConnectionTime updates the connection time displayed in the menu
+func (st *SystemTray) UpdateConnectionTime(timeStr string) {
+	st.mu.Lock()
+	st.connectionTime = timeStr
+	st.menuRevision++
+	revision := st.menuRevision
+	st.mu.Unlock()
+
+	// Emit menu layout changed
+	st.conn.Emit(st.menuPath, "com.canonical.dbusmenu.LayoutUpdated", revision, int32(0))
+}
+
+// SetAutoConnect updates the auto-connect setting
+func (st *SystemTray) SetAutoConnect(enabled bool) {
+	st.mu.Lock()
+	st.autoConnect = enabled
+	st.menuRevision++
+	revision := st.menuRevision
+	st.mu.Unlock()
+
+	// Emit menu layout changed
+	st.conn.Emit(st.menuPath, "com.canonical.dbusmenu.LayoutUpdated", revision, int32(0))
+}
+
+// RefreshMenu forces a menu update by incrementing the revision
+func (st *SystemTray) RefreshMenu() {
+	st.mu.Lock()
+	st.menuRevision++
+	revision := st.menuRevision
+	st.mu.Unlock()
+
+	// Emit menu layout changed
+	st.conn.Emit(st.menuPath, "com.canonical.dbusmenu.LayoutUpdated", revision, int32(0))
+}
+
 // Stop removes the system tray item
 func (st *SystemTray) Stop() {
 	if st.registeredString != "" {
@@ -486,6 +582,9 @@ func makeMenuItem(id int32, props map[string]dbus.Variant) dbus.Variant {
 func (st *SystemTray) getMenuItems() map[int32]map[string]dbus.Variant {
 	st.mu.RLock()
 	connected := st.connected
+	networkName := st.networkName
+	connectionTime := st.connectionTime
+	autoConnect := st.autoConnect
 	st.mu.RUnlock()
 
 	items := make(map[int32]map[string]dbus.Variant)
@@ -516,14 +615,25 @@ func (st *SystemTray) getMenuItems() map[int32]map[string]dbus.Variant {
 		"visible": dbus.MakeVariant(true),
 	}
 
-	// Connection Info
-	items[MenuItemConnectionInfo] = map[string]dbus.Variant{
-		"label":   dbus.MakeVariant("Connection Info..."),
-		"enabled": dbus.MakeVariant(true),
-		"visible": dbus.MakeVariant(true),
+	// Network Info
+	if networkName != "" && networkName != "-" {
+		items[MenuItemNetworkInfo] = map[string]dbus.Variant{
+			"label":   dbus.MakeVariant(fmt.Sprintf("Network: %s", networkName)),
+			"enabled": dbus.MakeVariant(false),
+			"visible": dbus.MakeVariant(true),
+		}
 	}
 
-	// Status (informational, disabled)
+	// Connection Time
+	if connected && connectionTime != "" && connectionTime != "-" {
+		items[MenuItemConnectionTime] = map[string]dbus.Variant{
+			"label":   dbus.MakeVariant(fmt.Sprintf("Connected: %s", connectionTime)),
+			"enabled": dbus.MakeVariant(false),
+			"visible": dbus.MakeVariant(true),
+		}
+	}
+
+	// Status
 	statusText := "Status: Disconnected"
 	if connected {
 		statusText = "Status: Connected"
@@ -536,6 +646,79 @@ func (st *SystemTray) getMenuItems() map[int32]map[string]dbus.Variant {
 
 	// Separator
 	items[MenuItemSeparator2] = map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Refresh Status
+	items[MenuItemRefreshStatus] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Refresh Status"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Connection Info
+	items[MenuItemConnectionInfo] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Connection Info..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Separator
+	items[MenuItemSeparator3] = map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Exit Node
+	items[MenuItemExitNode] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Exit Node"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Resources
+	items[MenuItemResources] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Resources..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Separator
+	items[MenuItemSeparator4] = map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Open Web Admin
+	items[MenuItemOpenWebAdmin] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Open Web Admin"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Diagnostic Report
+	items[MenuItemDiagReport] = map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Diagnostic Report..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}
+
+	// Auto-connect
+	toggleState := "off"
+	if autoConnect {
+		toggleState = "on"
+	}
+	items[MenuItemAutoConnect] = map[string]dbus.Variant{
+		"label":        dbus.MakeVariant("Auto-connect on Startup"),
+		"enabled":      dbus.MakeVariant(true),
+		"visible":      dbus.MakeVariant(true),
+		"toggle-type":  dbus.MakeVariant("checkmark"),
+		"toggle-state": dbus.MakeVariant(toggleState),
+	}
+
+	// Separator
+	items[MenuItemSeparator5] = map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}
@@ -555,6 +738,9 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 	st.mu.RLock()
 	connected := st.connected
 	revision := st.menuRevision
+	networkName := st.networkName
+	connectionTime := st.connectionTime
+	autoConnect := st.autoConnect
 	st.mu.RUnlock()
 
 	log.Printf("GetLayout called: parentId=%d, depth=%d, props=%v", parentId, recursionDepth, propertyNames)
@@ -563,15 +749,19 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 	var children []dbus.Variant
 
 	// Connect or Disconnect
-	connectLabel := "Connect"
 	if connected {
-		connectLabel = "Disconnect"
+		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant("Disconnect"),
+			"enabled": dbus.MakeVariant(true),
+			"visible": dbus.MakeVariant(true),
+		}))
+	} else {
+		children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant("Connect"),
+			"enabled": dbus.MakeVariant(true),
+			"visible": dbus.MakeVariant(true),
+		}))
 	}
-	children = append(children, makeMenuItem(MenuItemConnect, map[string]dbus.Variant{
-		"label":   dbus.MakeVariant(connectLabel),
-		"enabled": dbus.MakeVariant(true),
-		"visible": dbus.MakeVariant(true),
-	}))
 
 	// Separator
 	children = append(children, makeMenuItem(MenuItemSeparator1, map[string]dbus.Variant{
@@ -579,12 +769,23 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Connection Info
-	children = append(children, makeMenuItem(MenuItemConnectionInfo, map[string]dbus.Variant{
-		"label":   dbus.MakeVariant("Connection Info..."),
-		"enabled": dbus.MakeVariant(true),
-		"visible": dbus.MakeVariant(true),
-	}))
+	// Network info (disabled, informational)
+	if networkName != "" && networkName != "-" {
+		children = append(children, makeMenuItem(MenuItemNetworkInfo, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant(fmt.Sprintf("Network: %s", networkName)),
+			"enabled": dbus.MakeVariant(false),
+			"visible": dbus.MakeVariant(true),
+		}))
+	}
+
+	// Connection time (disabled, informational)
+	if connected && connectionTime != "" && connectionTime != "-" {
+		children = append(children, makeMenuItem(MenuItemConnectionTime, map[string]dbus.Variant{
+			"label":   dbus.MakeVariant(fmt.Sprintf("Connected: %s", connectionTime)),
+			"enabled": dbus.MakeVariant(false),
+			"visible": dbus.MakeVariant(true),
+		}))
+	}
 
 	// Status (disabled, informational)
 	statusText := "Status: Disconnected"
@@ -599,6 +800,79 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 
 	// Separator
 	children = append(children, makeMenuItem(MenuItemSeparator2, map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Refresh Status
+	children = append(children, makeMenuItem(MenuItemRefreshStatus, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Refresh Status"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Connection Info
+	children = append(children, makeMenuItem(MenuItemConnectionInfo, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Connection Info..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator3, map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Exit Node submenu
+	children = append(children, makeMenuItem(MenuItemExitNode, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Exit Node"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Resources submenu
+	children = append(children, makeMenuItem(MenuItemResources, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Resources..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator4, map[string]dbus.Variant{
+		"type":    dbus.MakeVariant("separator"),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Open Web Admin
+	children = append(children, makeMenuItem(MenuItemOpenWebAdmin, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Open Web Admin"),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Generate Diagnostic Report
+	children = append(children, makeMenuItem(MenuItemDiagReport, map[string]dbus.Variant{
+		"label":   dbus.MakeVariant("Diagnostic Report..."),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
+	}))
+
+	// Auto-connect (checkbox)
+	toggleState := "off"
+	if autoConnect {
+		toggleState = "on"
+	}
+	children = append(children, makeMenuItem(MenuItemAutoConnect, map[string]dbus.Variant{
+		"label":        dbus.MakeVariant("Auto-connect on Startup"),
+		"enabled":      dbus.MakeVariant(true),
+		"visible":      dbus.MakeVariant(true),
+		"toggle-type":  dbus.MakeVariant("checkmark"),
+		"toggle-state": dbus.MakeVariant(toggleState),
+	}))
+
+	// Separator
+	children = append(children, makeMenuItem(MenuItemSeparator5, map[string]dbus.Variant{
 		"type":    dbus.MakeVariant("separator"),
 		"visible": dbus.MakeVariant(true),
 	}))
@@ -643,9 +917,54 @@ func (st *SystemTray) Event(id int32, eventId string, data dbus.Variant, timesta
 			log.Println("Menu: Connect clicked")
 			go st.onConnect()
 		}
+
+	case MenuItemRefreshStatus: // Refresh Status
+		log.Println("Menu: Refresh Status clicked")
+		if st.onRefreshStatus != nil {
+			go st.onRefreshStatus()
+		}
+
 	case MenuItemConnectionInfo: // Connection Info
 		log.Println("Menu: Connection Info clicked")
 		go st.onConnectionInfo()
+
+	case MenuItemExitNode: // Exit Node submenu - show list dialog
+		log.Println("Menu: Exit Node clicked")
+		if st.onExitNodeList != nil {
+			go st.onExitNodeList()
+		}
+
+	case MenuItemResources: // Resources
+		log.Println("Menu: Resources clicked")
+		if st.onResourcesShow != nil {
+			go st.onResourcesShow()
+		}
+
+	case MenuItemOpenWebAdmin: // Open Web Admin
+		log.Println("Menu: Open Web Admin clicked")
+		if st.onOpenWebAdmin != nil {
+			go st.onOpenWebAdmin()
+		}
+
+	case MenuItemDiagReport: // Diagnostic Report
+		log.Println("Menu: Diagnostic Report clicked")
+		if st.onDiagReport != nil {
+			go st.onDiagReport()
+		}
+
+	case MenuItemAutoConnect: // Auto-connect Toggle
+		st.mu.RLock()
+		autoConnect := st.autoConnect
+		st.mu.RUnlock()
+
+		newState := !autoConnect
+		log.Printf("Menu: Auto-connect toggled to %v", newState)
+		if st.onAutoConnToggle != nil {
+			go st.onAutoConnToggle(newState)
+		}
+		// Update local state
+		st.SetAutoConnect(newState)
+
 	case MenuItemQuit: // Quit
 		log.Println("Menu: Quit clicked")
 		go st.onQuit()
@@ -672,6 +991,10 @@ func (st *SystemTray) Version() (uint32, *dbus.Error) {
 }
 
 func (st *SystemTray) AboutToShow(id int32) (bool, *dbus.Error) {
+	// Trigger menu refresh callback when menu is about to be shown
+	if id == 0 && st.onMenuOpening != nil {
+		go st.onMenuOpening()
+	}
 	return true, nil
 }
 

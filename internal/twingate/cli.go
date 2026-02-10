@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// NetworkInfo represents basic network information
+type NetworkInfo struct {
+	Name string
+	URL  string
+}
+
 // CheckStatus returns true if connected to Twingate, false otherwise
 func CheckStatus() (bool, error) {
 	output, err := runCommand("twingate", "status")
@@ -15,6 +21,32 @@ func CheckStatus() (bool, error) {
 
 	// Check if output starts with "online"
 	return strings.HasPrefix(strings.TrimSpace(output), "online"), nil
+}
+
+// GetNetworkInfo retrieves the current network name and URL
+func GetNetworkInfo() (*NetworkInfo, error) {
+	output, err := runCommand("twingate", "account", "list", "-d")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get network info: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 2 {
+		return &NetworkInfo{Name: "-", URL: "-"}, nil
+	}
+
+	// Parse first data line (skip header)
+	fields := strings.Split(lines[1], "\t")
+	info := &NetworkInfo{Name: "-", URL: "-"}
+
+	if len(fields) >= 2 {
+		info.Name = strings.TrimSpace(fields[1])
+	}
+	if len(fields) >= 3 {
+		info.URL = strings.TrimSpace(fields[2])
+	}
+
+	return info, nil
 }
 
 // Connect connects to Twingate
@@ -40,6 +72,19 @@ func Disconnect() error {
 	// Also try desktop-stop
 	runCommand("twingate", "desktop-stop")
 
+	return nil
+}
+
+// GenerateDiagnosticReport generates a diagnostic report
+func GenerateDiagnosticReport() error {
+	cmd := exec.Command("twingate", "report")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to generate diagnostic report: %w\nOutput: %s", err, string(output))
+	}
+
+	// Show success notification with report location
+	// The report command typically outputs the file path
 	return nil
 }
 

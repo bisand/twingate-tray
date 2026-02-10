@@ -310,7 +310,7 @@ func showStatusDialog(info ConnectionInfo) {
 		if buttonClicked == "Copy to Clipboard" {
 			copyToClipboard(text)
 			// Send notification
-			cmd := exec.Command("notify-send", "-t", "5000", "Twingate", "Connection info copied to clipboard")
+			cmd := exec.Command("notify-send", "-a", "Twingate Tray", "-t", "5000", "Twingate", "Connection info copied to clipboard")
 			_ = cmd.Run() // Ignore errors - notification is optional
 			// Re-show the dialog so the user can dismiss with OK
 			continue
