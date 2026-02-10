@@ -21,13 +21,13 @@ The Twingate System Tray Indicator provides a **persistent system tray icon** fo
 Simply run the binary without any arguments:
 
 ```bash
-./twingate-indicator
+./twingate-tray
 ```
 
 Or explicitly as a daemon:
 
 ```bash
-./twingate-indicator daemon
+./twingate-tray daemon
 ```
 
 The application will:
@@ -56,33 +56,33 @@ The application will:
 
 Run in a terminal:
 ```bash
-./twingate-indicator &
+./twingate-tray &
 ```
 
 To keep it running after closing the terminal:
 ```bash
-nohup ./twingate-indicator > /tmp/twingate.log 2>&1 &
+nohup ./twingate-tray > /tmp/twingate.log 2>&1 &
 ```
 
 ### Option 2: Systemd User Service (Recommended)
 
 1. Copy the binary to a permanent location:
 ```bash
-sudo cp twingate-indicator /usr/local/bin/
-sudo chmod +x /usr/local/bin/twingate-indicator
+sudo cp twingate-tray /usr/local/bin/
+sudo chmod +x /usr/local/bin/twingate-tray
 ```
 
 2. Create systemd user service:
 ```bash
 mkdir -p ~/.config/systemd/user/
-cat > ~/.config/systemd/user/twingate-indicator.service << 'EOF'
+cat > ~/.config/systemd/user/twingate-tray.service << 'EOF'
 [Unit]
 Description=Twingate System Tray Indicator
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/twingate-indicator
+ExecStart=/usr/local/bin/twingate-tray
 Restart=on-failure
 RestartSec=5
 
@@ -94,37 +94,37 @@ EOF
 3. Enable and start the service:
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable twingate-indicator.service
-systemctl --user start twingate-indicator.service
+systemctl --user enable twingate-tray.service
+systemctl --user start twingate-tray.service
 ```
 
 4. Check status:
 ```bash
-systemctl --user status twingate-indicator.service
+systemctl --user status twingate-tray.service
 ```
 
 5. View logs:
 ```bash
-journalctl --user -u twingate-indicator.service -f
+journalctl --user -u twingate-tray.service -f
 ```
 
 ### Option 3: Desktop Autostart
 
 1. Copy binary to permanent location:
 ```bash
-sudo cp twingate-indicator /usr/local/bin/
-sudo chmod +x /usr/local/bin/twingate-indicator
+sudo cp twingate-tray /usr/local/bin/
+sudo chmod +x /usr/local/bin/twingate-tray
 ```
 
 2. Create desktop entry:
 ```bash
 mkdir -p ~/.config/autostart/
-cat > ~/.config/autostart/twingate-indicator.desktop << 'EOF'
+cat > ~/.config/autostart/twingate-tray.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Twingate Indicator
 Comment=System tray indicator for Twingate VPN
-Exec=/usr/local/bin/twingate-indicator
+Exec=/usr/local/bin/twingate-tray
 Icon=network-vpn
 Terminal=false
 Categories=Network;
@@ -140,10 +140,10 @@ EOF
 While the tray icon provides all functionality, CLI commands are available:
 
 ```bash
-twingate-indicator status       # Check connection status
-twingate-indicator connect      # Connect to Twingate
-twingate-indicator disconnect   # Disconnect from Twingate
-twingate-indicator help         # Show help message
+twingate-tray status       # Check connection status
+twingate-tray connect      # Connect to Twingate
+twingate-tray disconnect   # Disconnect from Twingate
+twingate-tray help         # Show help message
 ```
 
 ## Technical Details
@@ -162,7 +162,7 @@ twingate-indicator help         # Show help message
 
 1. Check if the application is running:
 ```bash
-ps aux | grep twingate-indicator
+ps aux | grep twingate-tray
 ```
 
 2. Verify D-Bus registration:
@@ -195,7 +195,7 @@ Ensure you have necessary permissions. The application uses `pkexec` or `sudo` t
 
 If running via systemd:
 ```bash
-journalctl --user -u twingate-indicator.service -f
+journalctl --user -u twingate-tray.service -f
 ```
 
 If running manually:
@@ -208,22 +208,22 @@ tail -f /tmp/twingate.log
 
 ### If using systemd:
 ```bash
-systemctl --user stop twingate-indicator.service
-systemctl --user disable twingate-indicator.service
-rm ~/.config/systemd/user/twingate-indicator.service
+systemctl --user stop twingate-tray.service
+systemctl --user disable twingate-tray.service
+rm ~/.config/systemd/user/twingate-tray.service
 systemctl --user daemon-reload
-sudo rm /usr/local/bin/twingate-indicator
+sudo rm /usr/local/bin/twingate-tray
 ```
 
 ### If using autostart:
 ```bash
-rm ~/.config/autostart/twingate-indicator.desktop
-sudo rm /usr/local/bin/twingate-indicator
+rm ~/.config/autostart/twingate-tray.desktop
+sudo rm /usr/local/bin/twingate-tray
 ```
 
 ### If running manually:
 ```bash
-killall twingate-indicator
+killall twingate-tray
 ```
 
 ## Support

@@ -40,12 +40,12 @@ cd twingate-tray
 make build
 
 # Or build directly with go
-go build -o twingate-tray .
+go build -o twingate-tray ./cmd/twingate-tray
 
 # Optional: Install to system path
 sudo make install
 # Or manually:
-sudo cp twingate-indicator /usr/local/bin/
+sudo cp twingate-tray /usr/local/bin/
 ```
 
 ### Manual Start
@@ -176,15 +176,28 @@ sudo apt install golang-go libx11-dev build-essential
 
 ```
 twingate-tray/
-├── main.go              # Application entry point, signal handling
-├── tray.go              # D-Bus system tray (StatusNotifierItem + DBusMenu)
-├── twingate.go          # Twingate CLI wrapper and privilege escalation
-├── status.go            # Connection info gathering and clipboard support
-├── icons.go             # Lock/unlock icon generation (Font Awesome)
-├── go.mod               # Go module definition with dependencies
-├── Makefile             # Build automation
-├── install.sh           # Installation script
-└── README.md            # This file
+├── cmd/
+│   └── twingate-tray/
+│       └── main.go           # Application entry point, CLI handling
+├── internal/
+│   ├── app/
+│   │   ├── state.go          # Application state management
+│   │   └── constants.go      # Application-level constants
+│   ├── tray/
+│   │   ├── tray.go           # D-Bus system tray (StatusNotifierItem + DBusMenu)
+│   │   ├── icons.go          # Lock/unlock icon generation (Font Awesome)
+│   │   └── constants.go      # Menu item IDs and icon specs
+│   └── twingate/
+│       ├── cli.go            # Twingate CLI wrapper and privilege escalation
+│       └── status.go         # Connection info gathering and dialogs
+├── tools/
+│   ├── generate_icons.go     # PNG icon generator (build tool)
+│   └── svg_to_points.py      # SVG to polygon converter
+├── assets/                   # Static icon files
+├── go.mod                    # Go module definition with dependencies
+├── Makefile                  # Build automation
+├── install.sh                # Installation script
+└── README.md                 # This file
 ```
 
 ### Key Components

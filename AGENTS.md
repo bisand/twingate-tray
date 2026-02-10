@@ -14,8 +14,8 @@ A Go-based system tray indicator for Twingate VPN on Linux (GNOME/Zorin OS).
 
 ### Standard Build
 ```bash
-make build           # Build binary: twingate-indicator
-go build -o twingate-indicator .
+make build           # Build binary: twingate-tray
+go build -o twingate-tray ./cmd/twingate-tray
 ```
 
 ### Development Workflow
@@ -155,10 +155,25 @@ st.mu.RUnlock()
 - Launch signal handler in separate goroutine
 
 ### File Organization
-- **main.go**: CLI handling, signal management, main loop
-- **tray.go**: D-Bus tray implementation, zenity menus
-- **twingate.go**: Twingate CLI interaction, privilege escalation
-- Keep files focused - create new files if adding major features
+
+The project follows standard Go project layout:
+
+- **cmd/twingate-tray/main.go**: Application entry point, CLI handling, signal management, main loop
+- **internal/app/**: Application state management and constants
+  - `state.go`: Thread-safe AppState with connection status
+  - `constants.go`: Status poll interval, notification timeout
+- **internal/tray/**: D-Bus system tray implementation
+  - `tray.go`: StatusNotifierItem + DBusMenu protocols
+  - `icons.go`: Font Awesome lock/unlock icon generation
+  - `constants.go`: Menu item IDs, icon specifications
+- **internal/twingate/**: VPN interaction
+  - `cli.go`: Twingate CLI wrapper and privilege escalation
+  - `status.go`: Connection info gathering, dialogs, clipboard
+- **tools/**: Build and development utilities
+  - `generate_icons.go`: PNG icon generator (build tool)
+  - `svg_to_points.py`: SVG to polygon converter
+
+Keep files focused - create new packages if adding major features
 
 ## Common Pitfalls to Avoid
 

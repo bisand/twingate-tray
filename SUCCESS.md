@@ -22,7 +22,7 @@ The Twingate system tray indicator is now fully functional!
 **Option 1: Direct**
 ```bash
 cd /home/bisand/dev/twingate-ui
-./twingate-indicator &
+./twingate-tray &
 ```
 
 **Option 2: Using start script**
@@ -50,7 +50,7 @@ cd /home/bisand/dev/twingate-ui
 ### Stopping the Application
 
 ```bash
-killall twingate-indicator
+killall twingate-tray
 ```
 
 Or click the icon and select "Quit" from the menu.
@@ -71,8 +71,8 @@ Or click the icon and select "Quit" from the menu.
 - Proper signal handling for clean shutdown
 
 **Files:**
-- Binary: `/home/bisand/dev/twingate-ui/twingate-indicator` (6.3 MB)
-- Logs: `/tmp/twingate-indicator.log`
+- Binary: `/home/bisand/dev/twingate-ui/twingate-tray` (6.3 MB)
+- Logs: `/tmp/twingate-tray.log`
 - Source: `/home/bisand/dev/twingate-ui/*.go`
 
 **Dependencies:**
@@ -85,18 +85,18 @@ Or click the icon and select "Quit" from the menu.
 ### Systemd User Service (Recommended)
 
 ```bash
-sudo cp twingate-indicator /usr/local/bin/
-sudo chmod +x /usr/local/bin/twingate-indicator
+sudo cp twingate-tray /usr/local/bin/
+sudo chmod +x /usr/local/bin/twingate-tray
 
 mkdir -p ~/.config/systemd/user/
-cat > ~/.config/systemd/user/twingate-indicator.service << 'EOF'
+cat > ~/.config/systemd/user/twingate-tray.service << 'EOF'
 [Unit]
 Description=Twingate System Tray Indicator
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/twingate-indicator
+ExecStart=/usr/local/bin/twingate-tray
 Restart=on-failure
 RestartSec=5
 
@@ -105,23 +105,23 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-systemctl --user enable twingate-indicator.service
-systemctl --user start twingate-indicator.service
+systemctl --user enable twingate-tray.service
+systemctl --user start twingate-tray.service
 ```
 
 ### Desktop Autostart
 
 ```bash
-sudo cp twingate-indicator /usr/local/bin/
-sudo chmod +x /usr/local/bin/twingate-indicator
+sudo cp twingate-tray /usr/local/bin/
+sudo chmod +x /usr/local/bin/twingate-tray
 
 mkdir -p ~/.config/autostart/
-cat > ~/.config/autostart/twingate-indicator.desktop << 'EOF'
+cat > ~/.config/autostart/twingate-tray.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Twingate Indicator
 Comment=System tray indicator for Twingate VPN
-Exec=/usr/local/bin/twingate-indicator
+Exec=/usr/local/bin/twingate-tray
 Icon=network-wireless
 Terminal=false
 Categories=Network;
@@ -142,21 +142,21 @@ gnome-extensions enable zorin-appindicator@zorinos.com
 
 ### Check if Running
 ```bash
-ps aux | grep twingate-indicator
+ps aux | grep twingate-tray
 ```
 
 ### View Logs
 ```bash
-tail -f /tmp/twingate-indicator.log
+tail -f /tmp/twingate-tray.log
 ```
 
 ### Multiple Icons Appearing
 ```bash
 # Kill all instances
-killall twingate-indicator
+killall twingate-tray
 sleep 2
 # Start fresh
-./twingate-indicator &
+./twingate-tray &
 ```
 
 ## Why This Solution Works
