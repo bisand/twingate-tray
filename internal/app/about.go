@@ -90,7 +90,9 @@ func findAboutIconPath() string {
 	// Look for 96x96 SVG first (properly sized for About dialog)
 	iconPaths := []string{
 		"assets/twingate-tray-96.svg",
+		"/usr/share/twingate-tray/assets/twingate-tray-96.svg",
 		"assets/twingate-tray.svg",
+		"/usr/share/twingate-tray/assets/twingate-tray.svg",
 	}
 
 	for _, path := range iconPaths {

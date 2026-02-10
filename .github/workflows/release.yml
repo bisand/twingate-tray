@@ -71,6 +71,7 @@ jobs:
           cp INSTALL.md dist/twingate-tray/
           cp USAGE_GUIDE.md dist/twingate-tray/
           cp twingate-tray.service dist/twingate-tray/
+          cp -r assets dist/twingate-tray/
           chmod +x dist/twingate-tray/twingate-tray
           chmod +x dist/twingate-tray/install.sh
 
@@ -163,10 +164,14 @@ jobs:
           mkdir -p ${PACKAGE_NAME}/usr/share/doc/twingate-tray
           mkdir -p ${PACKAGE_NAME}/lib/systemd/user
           mkdir -p ${PACKAGE_NAME}/etc/xdg/autostart
+          mkdir -p ${PACKAGE_NAME}/usr/share/twingate-tray/assets
           
           # Copy binary
           cp twingate-tray ${PACKAGE_NAME}/usr/local/bin/
           chmod +x ${PACKAGE_NAME}/usr/local/bin/twingate-tray
+          
+          # Copy assets
+          cp -r assets/* ${PACKAGE_NAME}/usr/share/twingate-tray/assets/
           
           # Copy documentation
           cp README.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
@@ -389,6 +394,7 @@ jobs:
           mkdir -p twingate-tray-${VERSION}
           cp twingate-tray twingate-tray-${VERSION}/
           cp README.md INSTALL.md USAGE_GUIDE.md twingate-tray.service twingate-tray-${VERSION}/
+          cp -r assets twingate-tray-${VERSION}/
           
           # Create XDG autostart desktop file
           cat > twingate-tray-${VERSION}/twingate-tray.desktop << 'DESKTOP_EOF'
@@ -445,6 +451,7 @@ jobs:
           mkdir -p %{buildroot}/usr/lib/systemd/user
           mkdir -p %{buildroot}/usr/share/doc/%{name}
           mkdir -p %{buildroot}/etc/xdg/autostart
+          mkdir -p %{buildroot}/usr/share/%{name}/assets
           
           install -m 755 twingate-tray %{buildroot}/usr/local/bin/
           install -m 644 twingate-tray.service %{buildroot}/usr/lib/systemd/user/
@@ -452,6 +459,7 @@ jobs:
           install -m 644 README.md %{buildroot}/usr/share/doc/%{name}/
           install -m 644 INSTALL.md %{buildroot}/usr/share/doc/%{name}/
           install -m 644 USAGE_GUIDE.md %{buildroot}/usr/share/doc/%{name}/
+          cp -r assets/* %{buildroot}/usr/share/%{name}/assets/
           
           %files
           /usr/local/bin/twingate-tray
@@ -460,6 +468,7 @@ jobs:
           /usr/share/doc/%{name}/README.md
           /usr/share/doc/%{name}/INSTALL.md
           /usr/share/doc/%{name}/USAGE_GUIDE.md
+          /usr/share/%{name}/assets/*
           
           %post
           echo "========================================="
