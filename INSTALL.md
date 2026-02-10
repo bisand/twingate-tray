@@ -4,9 +4,9 @@
 
 Choose the installation method that best fits your distribution:
 
-### Option 1: DEB Package (Debian/Ubuntu/Zorin)
+### Option 1: DEB Package (Debian-based)
 
-**Recommended for:** Ubuntu, Debian, Zorin OS, Pop!_OS, Linux Mint
+**Recommended for:** Ubuntu, Debian, Zorin OS, Pop!_OS, Linux Mint, Elementary OS
 
 ```bash
 # Download the appropriate package for your architecture
@@ -25,9 +25,9 @@ sudo apt-get install -f
 
 **Dependencies installed:** zenity, libnotify-bin, policykit-1
 
-### Option 2: RPM Package (Fedora/RHEL/CentOS)
+### Option 2: RPM Package (RPM-based)
 
-**Recommended for:** Fedora, RHEL, CentOS, Rocky Linux, AlmaLinux
+**Recommended for:** Fedora, RHEL, CentOS, Rocky Linux, AlmaLinux, openSUSE
 
 ```bash
 # Download the appropriate package for your architecture

@@ -4,9 +4,9 @@ Guide for AI coding agents working on this repository.
 
 ## Project Overview
 
-A Go-based system tray indicator for Twingate VPN on Linux (GNOME/Zorin OS).
+A Go-based system tray indicator for Twingate VPN on Linux (GNOME and KDE Plasma).
 - **Language**: Go 1.21+
-- **Platform**: Linux (GNOME desktop)
+- **Platform**: Linux (GNOME and KDE Plasma desktop environments)
 - **Key Dependencies**: godbus/dbus v5, zenity (system package)
 - **Architecture**: StatusNotifierItem D-Bus protocol with zenity popup menus
 
@@ -214,7 +214,7 @@ go mod tidy
 
 1. Update version if tracking in code
 2. Run `make clean && make all`
-3. Test on target system (GNOME/Zorin)
+3. Test on target system (GNOME desktop environment)
 4. Tag release: `git tag v1.0.0`
 5. Build binary: `make build`
 6. Create release package with install.sh script
@@ -222,6 +222,7 @@ go mod tidy
 ## Additional Notes
 
 - This is a **Linux-only** application (uses D-Bus, GNOME icons, zenity)
-- StatusNotifierItem is the modern Linux tray standard (despite "KDE" in protocol name)
-- GNOME Shell AppIndicator extension must be enabled on target systems
+- StatusNotifierItem is the modern Linux tray standard (native to KDE, requires extension on GNOME)
+- GNOME Shell AppIndicator extension must be enabled on GNOME systems
+- KDE Plasma has native StatusNotifierItem support
 - Privilege escalation uses `pkexec` (primary) or `sudo` (fallback) for VPN operations

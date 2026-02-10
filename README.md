@@ -1,6 +1,6 @@
 # Twingate System Tray Indicator
 
-A lightweight system tray indicator for Twingate VPN on Linux (GNOME/Zorin OS). Displays real-time connection status with a native context menu for managing VPN connections.
+A lightweight system tray indicator for Twingate VPN on Linux (GNOME and KDE). Displays real-time connection status with a native context menu for managing VPN connections.
 
 ## Features
 
@@ -155,8 +155,10 @@ journalctl --user -u twingate-tray -f
 
 ### Runtime Requirements
 - **Twingate CLI**: Must be installed and in PATH
-- **D-Bus Session Bus**: For system tray communication (standard on GNOME/KDE)
-- **AppIndicator Extension**: GNOME Shell AppIndicator extension (pre-installed on Zorin OS)
+- **D-Bus Session Bus**: For system tray communication (standard on all Linux desktops)
+- **System Tray Support**: 
+  - GNOME: AppIndicator/KStatusNotifierItem extension required
+  - KDE Plasma: Native support (works out of the box)
 - **zenity**: For popup dialogs (usually pre-installed)
 - **notify-send**: For desktop notifications (optional, from `libnotify-bin` package)
 - **pkexec or sudo**: For privileged VPN operations
@@ -298,13 +300,13 @@ After building, test these scenarios:
 ## Platform Support
 
 ### Tested On
-- ✅ Zorin OS 17 (GNOME 43)
-- ✅ Ubuntu 22.04+ with GNOME Shell
+- ✅ GNOME 40+ (Ubuntu, Fedora, Debian)
+- ✅ KDE Plasma 5.20+
 
 ### Requirements by Desktop Environment
-- **GNOME**: AppIndicator extension (usually pre-installed on Ubuntu/Zorin)
-- **KDE Plasma**: Native StatusNotifierItem support
-- **Other DEs**: May require additional AppIndicator support
+- **GNOME**: AppIndicator extension required (available in most distributions' extension repositories)
+- **KDE Plasma**: Works natively out of the box (StatusNotifierItem is native to KDE)
+- **Other DEs**: May work if they support StatusNotifierItem/AppIndicator protocol
 
 ### Known Limitations
 

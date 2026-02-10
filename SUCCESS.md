@@ -134,10 +134,13 @@ EOF
 
 ### Icon Not Appearing
 ```bash
-# Restart GNOME AppIndicator extension
-gnome-extensions disable zorin-appindicator@zorinos.com
+# Restart GNOME AppIndicator extension (example for Ubuntu's extension)
+gnome-extensions disable ubuntu-appindicators@ubuntu.com
 sleep 2
-gnome-extensions enable zorin-appindicator@zorinos.com
+gnome-extensions enable ubuntu-appindicators@ubuntu.com
+
+# Or use the generic AppIndicator extension name on your system
+# Find it with: gnome-extensions list | grep -i indicator
 ```
 
 ### Check if Running
@@ -165,7 +168,7 @@ After trying several approaches (pure D-Bus menu, icon files, different registra
 
 1. **StatusNotifierItem** - Standard Linux tray protocol (works on GNOME despite "KDE" in the name)
 2. **System Icons** - Using built-in GNOME icons instead of custom pixmaps
-3. **Zenity Menus** - Popup dialogs instead of DBusMenu (more compatible with Zorin/GNOME)
+3. **Zenity Menus** - Popup dialogs instead of DBusMenu (better GNOME compatibility)
 4. **Proper Cleanup** - Signal handling ensures icon disappears on exit
 
 This approach is simple, reliable, and doesn't require any external dependencies beyond what's already on your system.
