@@ -6,7 +6,7 @@ Wants=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/twingate-tray
+ExecStart=/usr/local/bin/twingate-tray
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
