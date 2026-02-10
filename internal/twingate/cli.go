@@ -16,11 +16,18 @@ type NetworkInfo struct {
 func CheckStatus() (bool, error) {
 	output, err := runCommand("twingate", "status")
 	if err != nil {
+		// Don't treat command errors as fatal - just log and return disconnected
+		// The command might fail due to temporary issues
 		return false, fmt.Errorf("twingate status command failed: %w", err)
 	}
 
-	// Check if output starts with "online"
-	return strings.HasPrefix(strings.TrimSpace(output), "online"), nil
+	outputTrimmed := strings.TrimSpace(strings.ToLower(output))
+
+	// Check if output indicates online status
+	// Support both "online" and "Online" (case-insensitive)
+	isOnline := strings.HasPrefix(outputTrimmed, "online")
+
+	return isOnline, nil
 }
 
 // GetNetworkInfo retrieves the current network name and URL

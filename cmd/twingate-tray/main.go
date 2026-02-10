@@ -168,28 +168,62 @@ Usage:
 }
 
 func monitorStatus() {
+	log.Println("Starting status monitor...")
 	ticker := time.NewTicker(app.StatusPollInterval)
 	defer ticker.Stop()
 
 	var prevConnected *bool
+	var stableCount int
+	const stabilityThreshold = 3 // Require 3 consistent readings before changing state
 
 	for range ticker.C {
 		updateStatus()
 
-		// Log status changes
+		// Get current connection status
 		connected := appState.IsConnected()
-		if prevConnected == nil || *prevConnected != connected {
+
+		// Debounce: Only change state if we get consistent readings
+		if prevConnected == nil {
+			// First reading - initialize and log the initial state
+			log.Printf("Initial status: connected=%v", connected)
+			prevConnected = &connected
+			stableCount = 1
+
+			// Log and notify initial state
 			if connected {
 				log.Println("Status: Connected to Twingate")
-				sendNotification("Twingate Connected", "You are now connected to Twingate")
-
-				// Fetch and update network info on connect
 				updateNetworkInfo()
 			} else {
 				log.Println("Status: Disconnected from Twingate")
-				sendNotification("Twingate Disconnected", "You are now disconnected from Twingate")
 			}
-			prevConnected = &connected
+		} else if *prevConnected == connected {
+			// Status unchanged - reset stability counter
+			stableCount = 0
+		} else {
+			// Status changed - increment stability counter
+			stableCount++
+
+			if stableCount >= stabilityThreshold {
+				// Status has been consistent for threshold readings - accept the change
+				log.Printf("Status change detected after %d stable readings: %v -> %v",
+					stableCount, *prevConnected, connected)
+
+				if connected {
+					log.Println("Status: Connected to Twingate")
+					sendNotification("Twingate Connected", "You are now connected to Twingate")
+
+					// Fetch and update network info on connect
+					updateNetworkInfo()
+				} else {
+					log.Println("Status: Disconnected from Twingate")
+					sendNotification("Twingate Disconnected", "You are now disconnected from Twingate")
+				}
+				prevConnected = &connected
+				stableCount = 0
+			} else {
+				log.Printf("Status fluctuation detected (%d/%d): current=%v, stable=%v",
+					stableCount, stabilityThreshold, connected, *prevConnected)
+			}
 		}
 	}
 }
@@ -202,12 +236,19 @@ func updateStatus() {
 
 	if err != nil {
 		appState.SetLastError(err.Error())
-		log.Printf("Status check error: %v", err)
+		// Only log errors occasionally to avoid log spam
+		// We expect some transient failures during connection changes
+		if appState.GetLastError() != err.Error() {
+			log.Printf("Status check error: %v", err)
+		}
 	} else {
+		if appState.GetLastError() != "" {
+			log.Println("Status check recovered from error")
+		}
 		appState.SetLastError("")
 	}
 
-	// Update system tray icon
+	// Update system tray icon based on current status
 	if systemTray != nil {
 		systemTray.UpdateStatus(connected)
 	}
