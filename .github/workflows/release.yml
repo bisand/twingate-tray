@@ -199,7 +199,7 @@ jobs:
           Priority: optional
           Architecture: ${{ matrix.debarch }}
           Depends: zenity, libnotify-bin, dbus
-          Recommends: policykit-1, gnome-shell-extension-appindicator | gir1.2-appindicator3-0.1
+          Recommends: yad, policykit-1, gnome-shell-extension-appindicator | gir1.2-appindicator3-0.1
           Suggests: twingate
           Maintainer: Andre Biseth <bisand@gmail.com>
           Homepage: https://github.com/bisand/twingate-tray
@@ -421,7 +421,7 @@ jobs:
           Requires:       zenity
           Requires:       libnotify
           Requires:       dbus
-          Recommends:     polkit
+          Recommends:     yad, polkit
           Suggests:       gnome-shell-extension-appindicator
           
           %description

@@ -154,14 +154,21 @@ journalctl --user -u twingate-tray -f
 ## Requirements
 
 ### Runtime Requirements
+
+**Required:**
 - **Twingate CLI**: Must be installed and in PATH
 - **D-Bus Session Bus**: For system tray communication (standard on all Linux desktops)
 - **System Tray Support**: 
   - GNOME: AppIndicator/KStatusNotifierItem extension required
   - KDE Plasma: Native support (works out of the box)
 - **zenity**: For popup dialogs (usually pre-installed)
-- **notify-send**: For desktop notifications (optional, from `libnotify-bin` package)
 - **pkexec or sudo**: For privileged VPN operations
+
+**Optional (Recommended):**
+- **yad**: Enhanced dialog tool for better About dialog with large icon display
+  - If not installed, falls back to zenity (smaller icon)
+  - Install: `sudo apt install yad` (Ubuntu/Debian) or `sudo dnf install yad` (Fedora)
+- **notify-send**: For desktop notifications (from `libnotify-bin` package)
 
 ### Build Dependencies
 To build from source, you need:

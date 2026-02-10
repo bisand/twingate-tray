@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 24 24">
-  <!-- VPN Lock and Globe Icon with vibrant blue colors -->
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24">
+  <!-- VPN Lock and Globe Icon with vibrant blue colors (96x96 for About dialog) -->
   <defs>
     <linearGradient id="vpnGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />

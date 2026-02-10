@@ -62,14 +62,14 @@ func GetVersionInfo() string {
 
 // GetAboutText returns the complete about text for display
 func GetAboutText() string {
-	return "<b><big>" + AppName + "</big></b>\n\n" +
-		"<b>Version:</b> " + Version + "\n\n" +
+	return "<span size='x-large' weight='bold'>" + AppName + "</span>\n\n" +
+		"<b>Version:</b> " + Version + "\n" +
 		Description + "\n\n" +
 		"<b>License:</b> " + License + "\n" +
 		Author + "\n\n" +
 		"<b>Repository:</b>\n" +
 		"<a href=\"" + Repository + "\">" + Repository + "</a>\n\n" +
-		"<small>This program comes with absolutely no warranty.</small>"
+		"<span size='small' style='italic'>This program comes with absolutely no warranty.</span>"
 }
 
 // GetCreditsText returns credits information
