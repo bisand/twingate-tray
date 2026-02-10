@@ -1,6 +1,6 @@
-# Binaries
-twingate-tray
-twingate-indicator
+ # Binaries (ignore in root and build directories, not source)
+/twingate-tray
+/twingate-indicator
 *.exe
 *.dll
 *.so
