@@ -232,36 +232,65 @@ jobs:
             echo ""
           fi
           
-          # Enable and start the systemd service for the installing user
-          if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
-            USER_ID=$(id -u "$SUDO_USER")
-            # Check if user has an active session
-            if [ -n "$USER_ID" ] && loginctl show-user "$SUDO_USER" >/dev/null 2>&1; then
-              echo "Enabling and starting twingate-tray service for $SUDO_USER..."
-              # Enable the service
-              sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$USER_ID" systemctl --user enable twingate-tray.service 2>/dev/null || true
-              # Start the service
-              sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$USER_ID" systemctl --user start twingate-tray.service 2>/dev/null || true
-              echo "Tray indicator service enabled and started!"
-            else
-              echo "No active user session detected. Service will auto-start on next login."
+          # Enable and start the systemd service for all logged-in users
+          # Handle both dpkg and GUI package managers (GNOME Software, etc.)
+          for user_runtime in /run/user/*; do
+            if [ -d "$user_runtime" ]; then
+              USER_ID=$(basename "$user_runtime")
+              USERNAME=$(id -nu "$USER_ID" 2>/dev/null) || continue
+              
+              # Skip root
+              if [ "$USERNAME" = "root" ]; then
+                continue
+              fi
+              
+              echo "Enabling twingate-tray for user $USERNAME..."
+              sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
+              sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
             fi
-          fi
+          done
           
           echo ""
-          echo "The tray indicator is now running and will start automatically on login."
-          echo ""
-          echo "Service control commands:"
-          echo "  Check status:        systemctl --user status twingate-tray"
-          echo "  Restart service:     systemctl --user restart twingate-tray"
-          echo "  Stop service:        systemctl --user stop twingate-tray"
-          echo "  Disable autostart:   systemctl --user disable twingate-tray"
+          echo "Twingate Tray installed successfully."
+          echo "The tray indicator will start automatically on login."
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
           exit 0
           EOF
           chmod +x ${PACKAGE_NAME}/DEBIAN/postinst
+          
+          # Create postrm script for cleanup on uninstall
+          cat > ${PACKAGE_NAME}/DEBIAN/postrm << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          # Only run on complete removal, not on upgrade
+          if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+            echo "Cleaning up twingate-tray..."
+            
+            # Stop and disable service for all users
+            for user_runtime in /run/user/*; do
+              if [ -d "$user_runtime" ]; then
+                USER_ID=$(basename "$user_runtime")
+                USERNAME=$(id -nu "$USER_ID" 2>/dev/null) || continue
+                
+                # Skip root
+                if [ "$USERNAME" = "root" ]; then
+                  continue
+                fi
+                
+                sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user stop twingate-tray.service 2>/dev/null || true
+                sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user disable twingate-tray.service 2>/dev/null || true
+              fi
+            done
+            
+            echo "Twingate Tray removed."
+          fi
+          
+          exit 0
+          EOF
+          chmod +x ${PACKAGE_NAME}/DEBIAN/postrm
           
           # Build the package
           dpkg-deb --build ${PACKAGE_NAME}
@@ -436,33 +465,54 @@ jobs:
             echo ""
           fi
           
-          # Try to start the tray immediately for the current user
-          if [ -n "\$SUDO_USER" ] && [ "\$SUDO_USER" != "root" ]; then
-            USER_ID=\$(id -u "\$SUDO_USER")
-            # Check if user has an active session
-            if [ -n "\$USER_ID" ] && loginctl show-user "\$SUDO_USER" >/dev/null 2>&1; then
-              echo "Enabling and starting twingate-tray service for \$SUDO_USER..."
-              # Enable the service
-              sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$USER_ID" systemctl --user enable twingate-tray.service 2>/dev/null || true
-              # Start the service
-              sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$USER_ID" systemctl --user start twingate-tray.service 2>/dev/null || true
-              echo "Tray indicator service enabled and started!"
-            else
-              echo "No active user session detected. Service will auto-start on next login."
+          # Enable and start the systemd service for all logged-in users
+          # Handle both dnf/yum and GUI package managers
+          for user_runtime in /run/user/*; do
+            if [ -d "\$user_runtime" ]; then
+              USER_ID=\$(basename "\$user_runtime")
+              USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
+              
+              # Skip root
+              if [ "\$USERNAME" = "root" ]; then
+                continue
+              fi
+              
+              echo "Enabling twingate-tray for user \$USERNAME..."
+              sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
+              sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
             fi
-          fi
+          done
           
           echo ""
-          echo "The tray indicator is now running and will start automatically on login."
-          echo ""
-          echo "Service control commands:"
-          echo "  Check status:        systemctl --user status twingate-tray"
-          echo "  Restart service:     systemctl --user restart twingate-tray"
-          echo "  Stop service:        systemctl --user stop twingate-tray"
-          echo "  Disable autostart:   systemctl --user disable twingate-tray"
+          echo "Twingate Tray installed successfully."
+          echo "The tray indicator will start automatically on login."
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
+          
+          %postun
+          # Only run on complete removal, not on upgrade
+          if [ \$1 -eq 0 ]; then
+            echo "Cleaning up twingate-tray..."
+            
+            # Stop and disable service for all users
+            for user_runtime in /run/user/*; do
+              if [ -d "\$user_runtime" ]; then
+                USER_ID=\$(basename "\$user_runtime")
+                USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
+                
+                # Skip root
+                if [ "\$USERNAME" = "root" ]; then
+                  continue
+                fi
+                
+                sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user stop twingate-tray.service 2>/dev/null || true
+                sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user disable twingate-tray.service 2>/dev/null || true
+              fi
+            done
+            
+            echo "Twingate Tray removed."
+          fi
           
           %changelog
           * $(date +'%a %b %d %Y') Andre Biseth <bisand@gmail.com> - ${VERSION}-1
