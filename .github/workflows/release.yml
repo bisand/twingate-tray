@@ -216,10 +216,27 @@ jobs:
             echo ""
           fi
           
+          # Enable and start the service for the user who installed the package
+          if [ -n "$SUDO_USER" ]; then
+            # If installed with sudo, enable for the user who ran sudo
+            echo "Enabling twingate-tray service for user $SUDO_USER..."
+            sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$(id -u $SUDO_USER)" systemctl --user enable twingate-tray 2>/dev/null || true
+            sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$(id -u $SUDO_USER)" systemctl --user start twingate-tray 2>/dev/null || true
+            echo "Service enabled and started for user $SUDO_USER"
+          else
+            # If installed without sudo (running as root), try to enable for all users
+            echo "Enabling twingate-tray service..."
+            systemctl --user enable twingate-tray 2>/dev/null || true
+            systemctl --user start twingate-tray 2>/dev/null || true
+            echo "Service enabled. It will start on next login."
+          fi
+          
+          echo ""
           echo "Getting Started:"
-          echo "  Start manually:      twingate-tray"
-          echo "  Enable service:      systemctl --user enable --now twingate-tray"
           echo "  Check status:        systemctl --user status twingate-tray"
+          echo "  Stop service:        systemctl --user stop twingate-tray"
+          echo "  Restart service:     systemctl --user restart twingate-tray"
+          echo "  Disable service:     systemctl --user disable twingate-tray"
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
@@ -381,10 +398,27 @@ jobs:
             echo ""
           fi
           
+          # Enable and start the service for the user who installed the package
+          if [ -n "\$SUDO_USER" ]; then
+            # If installed with sudo, enable for the user who ran sudo
+            echo "Enabling twingate-tray service for user \$SUDO_USER..."
+            sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$(id -u \$SUDO_USER)" systemctl --user enable twingate-tray 2>/dev/null || true
+            sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$(id -u \$SUDO_USER)" systemctl --user start twingate-tray 2>/dev/null || true
+            echo "Service enabled and started for user \$SUDO_USER"
+          else
+            # If installed without sudo (running as root), try to enable for all users
+            echo "Enabling twingate-tray service..."
+            systemctl --user enable twingate-tray 2>/dev/null || true
+            systemctl --user start twingate-tray 2>/dev/null || true
+            echo "Service enabled. It will start on next login."
+          fi
+          
+          echo ""
           echo "Getting Started:"
-          echo "  Start manually:      twingate-tray"
-          echo "  Enable service:      systemctl --user enable --now twingate-tray"
           echo "  Check status:        systemctl --user status twingate-tray"
+          echo "  Stop service:        systemctl --user stop twingate-tray"
+          echo "  Restart service:     systemctl --user restart twingate-tray"
+          echo "  Disable service:     systemctl --user disable twingate-tray"
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
