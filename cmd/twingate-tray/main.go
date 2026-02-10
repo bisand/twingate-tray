@@ -35,23 +35,28 @@ func startDaemon() {
 
 	appState = app.NewAppState()
 
+	// Detect auto-connect status from systemd
+	autoConnectEnabled := twingate.IsAutoConnectEnabled()
+	log.Printf("Auto-connect detected: %v", autoConnectEnabled)
+
 	// Initialize system tray with all callback handlers
 	var err error
 	systemTray, err = tray.NewSystemTray(tray.CallbackHandlers{
-		OnConnect:        handleConnect,
-		OnDisconnect:     handleDisconnect,
-		OnConnectionInfo: handleConnectionInfo,
-		OnRefreshStatus:  handleRefreshStatus,
-		OnExitNodeStart:  handleExitNodeStart,
-		OnExitNodeStop:   handleExitNodeStop,
-		OnExitNodeList:   handleExitNodeList,
-		OnExitNodeSwitch: handleExitNodeSwitch,
-		OnResourcesShow:  handleResourcesShow,
-		OnOpenWebAdmin:   handleOpenWebAdmin,
-		OnDiagReport:     handleDiagnosticReport,
-		OnAutoConnToggle: handleAutoConnectToggle,
-		OnMenuOpening:    handleMenuOpening,
-		OnQuit:           handleQuit,
+		OnConnect:          handleConnect,
+		OnDisconnect:       handleDisconnect,
+		OnConnectionInfo:   handleConnectionInfo,
+		OnRefreshStatus:    handleRefreshStatus,
+		OnExitNodeStart:    handleExitNodeStart,
+		OnExitNodeStop:     handleExitNodeStop,
+		OnExitNodeList:     handleExitNodeList,
+		OnExitNodeSwitch:   handleExitNodeSwitch,
+		OnResourcesShow:    handleResourcesShow,
+		OnOpenWebAdmin:     handleOpenWebAdmin,
+		OnDiagReport:       handleDiagnosticReport,
+		OnAutoConnToggle:   handleAutoConnectToggle,
+		OnMenuOpening:      handleMenuOpening,
+		OnQuit:             handleQuit,
+		InitialAutoConnect: autoConnectEnabled,
 	})
 
 	if err != nil {
@@ -508,30 +513,38 @@ func handleDiagnosticReport() {
 
 func handleAutoConnectToggle(enabled bool) {
 	log.Printf("Auto-connect toggled: %v", enabled)
-	// TODO: Implement auto-connect configuration
-	// This would typically involve creating a systemd service or autostart desktop file
+
+	// Enable/disable the Twingate systemd service
+	if err := twingate.SetAutoConnect(enabled); err != nil {
+		log.Printf("Failed to set auto-connect: %v", err)
+		sendNotification("Auto-connect Error", fmt.Sprintf("Failed to change auto-connect: %v", err))
+		return
+	}
+
 	if enabled {
-		sendNotification("Auto-connect Enabled", "Twingate will connect automatically on startup")
+		sendNotification("Auto-connect Enabled", "Twingate service will start automatically on boot")
 	} else {
-		sendNotification("Auto-connect Disabled", "Automatic connection disabled")
+		sendNotification("Auto-connect Disabled", "Twingate service will not start automatically")
 	}
 }
 
 func handleMenuOpening() {
 	// Update connection time immediately when menu opens
 	// This ensures the displayed time is always current
-	if !appState.IsConnected() {
-		return
+	if appState.IsConnected() {
+		duration := appState.GetConnectionDuration()
+		if duration > 0 {
+			timeStr := formatDuration(duration)
+			if systemTray != nil {
+				systemTray.UpdateConnectionTime(timeStr)
+			}
+		}
 	}
 
-	duration := appState.GetConnectionDuration()
-	if duration == 0 {
-		return
-	}
-
-	timeStr := formatDuration(duration)
+	// Also refresh auto-connect status from systemd
+	autoConnectEnabled := twingate.IsAutoConnectEnabled()
 	if systemTray != nil {
-		systemTray.UpdateConnectionTime(timeStr)
+		systemTray.SetAutoConnect(autoConnectEnabled)
 	}
 }
 

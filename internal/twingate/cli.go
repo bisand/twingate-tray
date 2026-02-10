@@ -49,6 +49,37 @@ func GetNetworkInfo() (*NetworkInfo, error) {
 	return info, nil
 }
 
+// IsAutoConnectEnabled checks if the Twingate service is set to start automatically
+func IsAutoConnectEnabled() bool {
+	output, err := runCommand("systemctl", "is-enabled", "twingate")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(output) == "enabled"
+}
+
+// SetAutoConnect enables or disables auto-connect by enabling/disabling the systemd service
+func SetAutoConnect(enabled bool) error {
+	var cmd *exec.Cmd
+	if enabled {
+		cmd = exec.Command("pkexec", "systemctl", "enable", "twingate")
+	} else {
+		cmd = exec.Command("pkexec", "systemctl", "disable", "twingate")
+	}
+
+	if err := cmd.Run(); err != nil {
+		// Try with sudo as fallback
+		if enabled {
+			cmd = exec.Command("sudo", "systemctl", "enable", "twingate")
+		} else {
+			cmd = exec.Command("sudo", "systemctl", "disable", "twingate")
+		}
+		return cmd.Run()
+	}
+
+	return nil
+}
+
 // Connect connects to Twingate
 func Connect() error {
 	// Try pkexec first, fall back to sudo

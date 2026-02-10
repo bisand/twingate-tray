@@ -49,20 +49,21 @@ type SystemTray struct {
 
 // CallbackHandlers groups all callback functions for menu actions
 type CallbackHandlers struct {
-	OnConnect        func()
-	OnDisconnect     func()
-	OnConnectionInfo func()
-	OnRefreshStatus  func()
-	OnExitNodeStart  func()
-	OnExitNodeStop   func()
-	OnExitNodeList   func()
-	OnExitNodeSwitch func()
-	OnResourcesShow  func()
-	OnOpenWebAdmin   func()
-	OnDiagReport     func()
-	OnAutoConnToggle func(bool)
-	OnMenuOpening    func()
-	OnQuit           func()
+	OnConnect          func()
+	OnDisconnect       func()
+	OnConnectionInfo   func()
+	OnRefreshStatus    func()
+	OnExitNodeStart    func()
+	OnExitNodeStop     func()
+	OnExitNodeList     func()
+	OnExitNodeSwitch   func()
+	OnResourcesShow    func()
+	OnOpenWebAdmin     func()
+	OnDiagReport       func()
+	OnAutoConnToggle   func(bool)
+	OnMenuOpening      func()
+	OnQuit             func()
+	InitialAutoConnect bool // Initial auto-connect state from config
 }
 
 // NewSystemTray creates a new system tray instance
@@ -96,7 +97,7 @@ func NewSystemTray(handlers CallbackHandlers) (*SystemTray, error) {
 		networkName:      "-",
 		networkURL:       "",
 		connectionTime:   "-",
-		autoConnect:      false,
+		autoConnect:      handlers.InitialAutoConnect,
 	}
 
 	// Generate initial icon
@@ -705,16 +706,14 @@ func (st *SystemTray) getMenuItems() map[int32]map[string]dbus.Variant {
 	}
 
 	// Auto-connect
-	toggleState := "off"
+	autoConnectLabel := "Enable Auto-connect on Startup"
 	if autoConnect {
-		toggleState = "on"
+		autoConnectLabel = "Disable Auto-connect on Startup"
 	}
 	items[MenuItemAutoConnect] = map[string]dbus.Variant{
-		"label":        dbus.MakeVariant("Auto-connect on Startup"),
-		"enabled":      dbus.MakeVariant(true),
-		"visible":      dbus.MakeVariant(true),
-		"toggle-type":  dbus.MakeVariant("checkmark"),
-		"toggle-state": dbus.MakeVariant(toggleState),
+		"label":   dbus.MakeVariant(autoConnectLabel),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
 	}
 
 	// Separator
@@ -858,17 +857,15 @@ func (st *SystemTray) GetLayout(parentId int32, recursionDepth int32, propertyNa
 		"visible": dbus.MakeVariant(true),
 	}))
 
-	// Auto-connect (checkbox)
-	toggleState := "off"
+	// Auto-connect
+	autoConnectLabel := "Enable Auto-connect on Startup"
 	if autoConnect {
-		toggleState = "on"
+		autoConnectLabel = "Disable Auto-connect on Startup"
 	}
 	children = append(children, makeMenuItem(MenuItemAutoConnect, map[string]dbus.Variant{
-		"label":        dbus.MakeVariant("Auto-connect on Startup"),
-		"enabled":      dbus.MakeVariant(true),
-		"visible":      dbus.MakeVariant(true),
-		"toggle-type":  dbus.MakeVariant("checkmark"),
-		"toggle-state": dbus.MakeVariant(toggleState),
+		"label":   dbus.MakeVariant(autoConnectLabel),
+		"enabled": dbus.MakeVariant(true),
+		"visible": dbus.MakeVariant(true),
 	}))
 
 	// Separator
