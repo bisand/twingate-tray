@@ -1,0 +1,401 @@
+name: Build and Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build-tarballs:
+    name: Build tarballs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            artifact_name: twingate-tray-linux-amd64
+          - goos: linux
+            goarch: arm64
+            artifact_name: twingate-tray-linux-arm64
+          - goos: linux
+            goarch: 386
+            artifact_name: twingate-tray-linux-386
+          - goos: linux
+            goarch: arm
+            goarm: 7
+            artifact_name: twingate-tray-linux-armv7
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          go build -v -o twingate-tray \
+            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            .
+
+      - name: Prepare tarball contents
+        run: |
+          mkdir -p dist/twingate-tray
+          cp twingate-tray dist/twingate-tray/
+          cp install.sh dist/twingate-tray/
+          cp README.md dist/twingate-tray/
+          cp INSTALL.md dist/twingate-tray/
+          cp USAGE_GUIDE.md dist/twingate-tray/
+          cp twingate-tray.service dist/twingate-tray/
+          chmod +x dist/twingate-tray/twingate-tray
+          chmod +x dist/twingate-tray/install.sh
+
+      - name: Create tarball
+        run: |
+          cd dist
+          tar -czf ${{ matrix.artifact_name }}.tar.gz twingate-tray/
+          sha256sum ${{ matrix.artifact_name }}.tar.gz > ${{ matrix.artifact_name }}.tar.gz.sha256
+          mv ${{ matrix.artifact_name }}.tar.gz ../
+          mv ${{ matrix.artifact_name }}.tar.gz.sha256 ../
+
+      - name: Upload tarball to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}.tar.gz
+          asset_name: ${{ matrix.artifact_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload checksum to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}.tar.gz.sha256
+          asset_name: ${{ matrix.artifact_name }}.tar.gz.sha256
+          asset_content_type: text/plain
+
+  build-deb:
+    name: Build DEB packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            debarch: amd64
+          - goarch: arm64
+            debarch: arm64
+          - goarch: 386
+            debarch: i386
+          - goarch: arm
+            goarm: 7
+            debarch: armhf
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          go build -v -o twingate-tray \
+            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            .
+
+      - name: Create DEB package structure
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"  # Remove 'v' prefix
+          PACKAGE_NAME="twingate-tray_${VERSION}_${{ matrix.debarch }}"
+          
+          mkdir -p ${PACKAGE_NAME}/DEBIAN
+          mkdir -p ${PACKAGE_NAME}/usr/local/bin
+          mkdir -p ${PACKAGE_NAME}/usr/share/doc/twingate-tray
+          mkdir -p ${PACKAGE_NAME}/lib/systemd/user
+          
+          # Copy binary
+          cp twingate-tray ${PACKAGE_NAME}/usr/local/bin/
+          chmod +x ${PACKAGE_NAME}/usr/local/bin/twingate-tray
+          
+          # Copy documentation
+          cp README.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+          cp INSTALL.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+          cp USAGE_GUIDE.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+          
+          # Copy systemd service
+          cp twingate-tray.service ${PACKAGE_NAME}/lib/systemd/user/
+          
+          # Create control file
+          cat > ${PACKAGE_NAME}/DEBIAN/control << EOF
+          Package: twingate-tray
+          Version: ${VERSION}
+          Section: net
+          Priority: optional
+          Architecture: ${{ matrix.debarch }}
+          Depends: zenity, libnotify-bin, dbus
+          Recommends: policykit-1, gnome-shell-extension-appindicator | gir1.2-appindicator3-0.1
+          Suggests: twingate
+          Maintainer: Andre Biseth <bisand@gmail.com>
+          Homepage: https://github.com/bisand/twingate-tray
+          Description: Twingate System Tray Indicator
+           A lightweight system tray indicator for Twingate VPN on Linux.
+           Displays real-time connection status with a native context menu
+           for managing VPN connections.
+           .
+           Features:
+            - System tray integration via StatusNotifierItem
+            - Visual status indicator (connected/disconnected)
+            - Native context menu for VPN control
+            - Desktop notifications on status changes
+            - Detailed connection information viewer
+          EOF
+          
+          # Create postinst script
+          cat > ${PACKAGE_NAME}/DEBIAN/postinst << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "========================================="
+          echo "Twingate Tray installed successfully!"
+          echo "========================================="
+          echo ""
+          echo "Binary location: /usr/local/bin/twingate-tray"
+          echo ""
+          
+          # Check if GNOME is being used
+          if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "$XDG_CURRENT_DESKTOP" = "ubuntu:GNOME" ]; then
+            echo "GNOME Desktop detected."
+            echo ""
+            echo "Note: GNOME requires the AppIndicator extension for tray icons."
+            echo "If the tray icon doesn't appear, install it with:"
+            echo "  sudo apt install gnome-shell-extension-appindicator"
+            echo "  gnome-extensions enable appindicatorsupport@ubuntu.com"
+            echo ""
+          fi
+          
+          # Check if Twingate CLI is available
+          if ! command -v twingate &> /dev/null; then
+            echo "WARNING: Twingate CLI not found!"
+            echo "Please install Twingate from: https://www.twingate.com/download"
+            echo ""
+          fi
+          
+          echo "Getting Started:"
+          echo "  Start manually:      twingate-tray"
+          echo "  Enable service:      systemctl --user enable --now twingate-tray"
+          echo "  Check status:        systemctl --user status twingate-tray"
+          echo ""
+          echo "Documentation: /usr/share/doc/twingate-tray/"
+          echo "========================================="
+          exit 0
+          EOF
+          chmod +x ${PACKAGE_NAME}/DEBIAN/postinst
+          
+          # Build the package
+          dpkg-deb --build ${PACKAGE_NAME}
+          
+          # Create checksum
+          sha256sum ${PACKAGE_NAME}.deb > ${PACKAGE_NAME}.deb.sha256
+
+      - name: Upload DEB package to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          PACKAGE_NAME="twingate-tray_${VERSION}_${{ matrix.debarch }}"
+          
+          gh release upload ${{ github.event.release.tag_name }} \
+            ${PACKAGE_NAME}.deb \
+            ${PACKAGE_NAME}.deb.sha256
+
+  build-rpm:
+    name: Build RPM packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            rpmarch: x86_64
+          - goarch: arm64
+            rpmarch: aarch64
+          - goarch: 386
+            rpmarch: i686
+          - goarch: arm
+            goarm: 7
+            rpmarch: armv7hl
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install RPM build tools
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          go build -v -o twingate-tray \
+            -ldflags="-s -w -X main.Version=${{ github.event.release.tag_name }}" \
+            .
+
+      - name: Create RPM package
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          
+          # Create RPM build structure
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          
+          # Create source tarball
+          mkdir -p twingate-tray-${VERSION}
+          cp twingate-tray twingate-tray-${VERSION}/
+          cp README.md INSTALL.md USAGE_GUIDE.md twingate-tray.service twingate-tray-${VERSION}/
+          tar -czf ~/rpmbuild/SOURCES/twingate-tray-${VERSION}.tar.gz twingate-tray-${VERSION}
+          
+          # Create spec file
+          cat > ~/rpmbuild/SPECS/twingate-tray.spec << EOF
+          Name:           twingate-tray
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        Twingate System Tray Indicator
+          
+          License:        MIT
+          URL:            https://github.com/bisand/twingate-tray
+          Source0:        %{name}-%{version}.tar.gz
+          
+          Requires:       zenity
+          Requires:       libnotify
+          Requires:       dbus
+          Recommends:     polkit
+          Suggests:       gnome-shell-extension-appindicator
+          
+          BuildArch:      ${{ matrix.rpmarch }}
+          
+          %description
+          A lightweight system tray indicator for Twingate VPN on Linux.
+          Displays real-time connection status with a native context menu
+          for managing VPN connections.
+          
+          Features:
+          - System tray integration via StatusNotifierItem
+          - Visual status indicator (connected/disconnected)
+          - Native context menu for VPN control
+          - Desktop notifications on status changes
+          - Detailed connection information viewer
+          
+          %prep
+          %setup -q
+          
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/local/bin
+          mkdir -p %{buildroot}%{_userunitdir}
+          mkdir -p %{buildroot}%{_docdir}/%{name}
+          
+          install -m 755 twingate-tray %{buildroot}/usr/local/bin/
+          install -m 644 twingate-tray.service %{buildroot}%{_userunitdir}/
+          install -m 644 README.md %{buildroot}%{_docdir}/%{name}/
+          install -m 644 INSTALL.md %{buildroot}%{_docdir}/%{name}/
+          install -m 644 USAGE_GUIDE.md %{buildroot}%{_docdir}/%{name}/
+          
+          %files
+          /usr/local/bin/twingate-tray
+          %{_userunitdir}/twingate-tray.service
+          %{_docdir}/%{name}/README.md
+          %{_docdir}/%{name}/INSTALL.md
+          %{_docdir}/%{name}/USAGE_GUIDE.md
+          
+          %post
+          echo "========================================="
+          echo "Twingate Tray installed successfully!"
+          echo "========================================="
+          echo ""
+          echo "Binary location: /usr/local/bin/twingate-tray"
+          echo ""
+          
+          # Check if GNOME is being used
+          if [ "\$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "\$XDG_CURRENT_DESKTOP" = "GNOME-Classic" ]; then
+            echo "GNOME Desktop detected."
+            echo ""
+            echo "Note: GNOME requires the AppIndicator extension for tray icons."
+            echo "If the tray icon doesn't appear, install it with:"
+            echo "  sudo dnf install gnome-shell-extension-appindicator"
+            echo ""
+          fi
+          
+          # Check if Twingate CLI is available
+          if ! command -v twingate &> /dev/null; then
+            echo "WARNING: Twingate CLI not found!"
+            echo "Please install Twingate from: https://www.twingate.com/download"
+            echo ""
+          fi
+          
+          echo "Getting Started:"
+          echo "  Start manually:      twingate-tray"
+          echo "  Enable service:      systemctl --user enable --now twingate-tray"
+          echo "  Check status:        systemctl --user status twingate-tray"
+          echo ""
+          echo "Documentation: %{_docdir}/%{name}/"
+          echo "========================================="
+          
+          %changelog
+          * $(date +'%a %b %d %Y') Andre Biseth <bisand@gmail.com> - ${VERSION}-1
+          - Release ${VERSION}
+          EOF
+          
+          # Build RPM
+          rpmbuild -bb ~/rpmbuild/SPECS/twingate-tray.spec --target=${{ matrix.rpmarch }}
+          
+          # Move RPM to current directory
+          find ~/rpmbuild/RPMS -name "*.rpm" -exec cp {} . \;
+          
+          # Create checksum
+          RPMFILE=$(ls *.rpm)
+          sha256sum ${RPMFILE} > ${RPMFILE}.sha256
+
+      - name: Upload RPM package to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RPMFILE=$(ls *.rpm)
+          gh release upload ${{ github.event.release.tag_name }} \
+            ${RPMFILE} \
+            ${RPMFILE}.sha256
