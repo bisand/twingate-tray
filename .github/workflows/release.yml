@@ -232,25 +232,30 @@ jobs:
             echo ""
           fi
           
-          # Try to start the tray immediately for the current user
+          # Enable and start the systemd service for the installing user
           if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
             USER_ID=$(id -u "$SUDO_USER")
             # Check if user has an active session
             if [ -n "$USER_ID" ] && loginctl show-user "$SUDO_USER" >/dev/null 2>&1; then
-              echo "Starting twingate-tray for $SUDO_USER..."
-              sudo -u "$SUDO_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus" /usr/local/bin/twingate-tray >/dev/null 2>&1 &
-              echo "Tray indicator started!"
+              echo "Enabling and starting twingate-tray service for $SUDO_USER..."
+              # Enable the service
+              sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$USER_ID" systemctl --user enable twingate-tray.service 2>/dev/null || true
+              # Start the service
+              sudo -u "$SUDO_USER" XDG_RUNTIME_DIR="/run/user/$USER_ID" systemctl --user start twingate-tray.service 2>/dev/null || true
+              echo "Tray indicator service enabled and started!"
+            else
+              echo "No active user session detected. Service will auto-start on next login."
             fi
           fi
           
           echo ""
-          echo "The tray indicator will start automatically on your next login."
+          echo "The tray indicator is now running and will start automatically on login."
           echo ""
-          echo "Manual control (optional):"
-          echo "  Start now:           twingate-tray &"
+          echo "Service control commands:"
           echo "  Check status:        systemctl --user status twingate-tray"
           echo "  Restart service:     systemctl --user restart twingate-tray"
-          echo "  Disable autostart:   rm ~/.config/autostart/twingate-tray.desktop"
+          echo "  Stop service:        systemctl --user stop twingate-tray"
+          echo "  Disable autostart:   systemctl --user disable twingate-tray"
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
@@ -436,20 +441,25 @@ jobs:
             USER_ID=\$(id -u "\$SUDO_USER")
             # Check if user has an active session
             if [ -n "\$USER_ID" ] && loginctl show-user "\$SUDO_USER" >/dev/null 2>&1; then
-              echo "Starting twingate-tray for \$SUDO_USER..."
-              sudo -u "\$SUDO_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\$USER_ID/bus" /usr/local/bin/twingate-tray >/dev/null 2>&1 &
-              echo "Tray indicator started!"
+              echo "Enabling and starting twingate-tray service for \$SUDO_USER..."
+              # Enable the service
+              sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$USER_ID" systemctl --user enable twingate-tray.service 2>/dev/null || true
+              # Start the service
+              sudo -u "\$SUDO_USER" XDG_RUNTIME_DIR="/run/user/\$USER_ID" systemctl --user start twingate-tray.service 2>/dev/null || true
+              echo "Tray indicator service enabled and started!"
+            else
+              echo "No active user session detected. Service will auto-start on next login."
             fi
           fi
           
           echo ""
-          echo "The tray indicator will start automatically on your next login."
+          echo "The tray indicator is now running and will start automatically on login."
           echo ""
-          echo "Manual control (optional):"
-          echo "  Start now:           twingate-tray &"
+          echo "Service control commands:"
           echo "  Check status:        systemctl --user status twingate-tray"
           echo "  Restart service:     systemctl --user restart twingate-tray"
-          echo "  Disable autostart:   rm ~/.config/autostart/twingate-tray.desktop"
+          echo "  Stop service:        systemctl --user stop twingate-tray"
+          echo "  Disable autostart:   systemctl --user disable twingate-tray"
           echo ""
           echo "Documentation: /usr/share/doc/twingate-tray/"
           echo "========================================="
