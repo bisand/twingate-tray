@@ -428,9 +428,9 @@ jobs:
           - Desktop notifications on status changes
           - Detailed connection information viewer
           
-          %prep
-          %setup -q
-          
+           %prep
+           %setup -q
+           
            %install
            rm -rf %{buildroot}
            mkdir -p %{buildroot}/usr/local/bin
