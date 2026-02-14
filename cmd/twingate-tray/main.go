@@ -18,6 +18,7 @@ import (
 var (
 	appState   *app.AppState
 	systemTray *tray.SystemTray
+	lockFile   *app.LockFile
 )
 
 func main() {
@@ -33,6 +34,14 @@ func main() {
 
 func startDaemon() {
 	log.Println("Starting Twingate tray...")
+
+	// Check for existing instance
+	lockFile = app.NewLockFile()
+	if err := lockFile.Acquire(); err != nil {
+		log.Printf("Error: %v", err)
+		log.Println("Another instance of twingate-tray is already running. Exiting.")
+		os.Exit(1)
+	}
 
 	appState = app.NewAppState()
 
@@ -99,6 +108,9 @@ func cleanup() {
 	log.Println("Cleaning up...")
 	if systemTray != nil {
 		systemTray.Stop()
+	}
+	if lockFile != nil {
+		lockFile.Release()
 	}
 	log.Println("Cleanup complete")
 }

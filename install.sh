@@ -60,6 +60,12 @@ WantedBy=default.target
 EOF
 	echo "✓ Service file created"
 
+	# Remove any existing desktop autostart entry to avoid duplicate instances
+	if [ -f "$AUTOSTART_DIR/twingate-tray.desktop" ]; then
+		rm -f "$AUTOSTART_DIR/twingate-tray.desktop"
+		echo "✓ Removed conflicting desktop autostart entry"
+	fi
+
 	# Enable and start
 	systemctl --user daemon-reload
 	systemctl --user enable twingate-tray.service
@@ -86,6 +92,15 @@ EOF
 	sudo cp "$BINARY" "$INSTALL_DIR/twingate-tray"
 	sudo chmod +x "$INSTALL_DIR/twingate-tray"
 	echo "✓ Binary copied to $INSTALL_DIR/twingate-tray"
+
+	# Remove any existing systemd service to avoid duplicate instances
+	if systemctl --user list-units --type=service | grep -q "twingate-tray.service"; then
+		systemctl --user disable twingate-tray.service 2>/dev/null || true
+		systemctl --user stop twingate-tray.service 2>/dev/null || true
+		rm -f "$SERVICE_DIR/twingate-tray.service"
+		systemctl --user daemon-reload
+		echo "✓ Removed conflicting systemd service"
+	fi
 
 	# Create desktop entry
 	mkdir -p "$AUTOSTART_DIR"
