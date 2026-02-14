@@ -401,33 +401,33 @@ jobs:
           
           # Create spec file
           cat > ~/rpmbuild/SPECS/twingate-tray.spec << EOF
-          Name:           twingate-tray
-          Version:        ${VERSION}
-          Release:        1%{?dist}
-          Summary:        Twingate System Tray Indicator
-          
-          License:        MIT
-          URL:            https://github.com/bisand/twingate-tray
-          Source0:        %{name}-%{version}.tar.gz
-          
-          Requires:       zenity
-          Requires:       libnotify
-          Requires:       dbus
-          Recommends:     yad, polkit
-          Suggests:       gnome-shell-extension-appindicator
-          
-          %description
-          A lightweight system tray indicator for Twingate VPN on Linux.
-          Displays real-time connection status with a native context menu
-          for managing VPN connections.
-          
-          Features:
-          - System tray integration via StatusNotifierItem
-          - Visual status indicator (connected/disconnected)
-          - Native context menu for VPN control
-          - Desktop notifications on status changes
-          - Detailed connection information viewer
-          
+           Name:           twingate-tray
+           Version:        ${VERSION}
+           Release:        1%{?dist}
+           Summary:        Twingate System Tray Indicator
+           
+           License:        MIT
+           URL:            https://github.com/bisand/twingate-tray
+           Source0:        %{name}-%{version}.tar.gz
+           
+           Requires:       zenity
+           Requires:       libnotify
+           Requires:       dbus
+           Recommends:     yad, polkit
+           Suggests:       gnome-shell-extension-appindicator
+           
+           %description
+           A lightweight system tray indicator for Twingate VPN on Linux.
+           Displays real-time connection status with a native context menu
+           for managing VPN connections.
+           
+           Features:
+           - System tray integration via StatusNotifierItem
+           - Visual status indicator (connected/disconnected)
+           - Native context menu for VPN control
+           - Desktop notifications on status changes
+           - Detailed connection information viewer
+           
            %prep
            %setup -q
            
@@ -519,35 +519,38 @@ jobs:
            echo ""
            echo "Documentation: /usr/share/doc/twingate-tray/"
            echo "========================================="
+           
+           %postun
+           # Only run on complete removal, not on upgrade
+           if [ \$1 -eq 0 ]; then
+             echo "Cleaning up twingate-tray..."
+             
+             # Stop and disable service for all users
+             for user_runtime in /run/user/*; do
+               if [ -d "\$user_runtime" ]; then
+                 USER_ID=\$(basename "\$user_runtime")
+                 USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
+                 
+                 # Skip root
+                 if [ "\$USERNAME" = "root" ]; then
+                   continue
+                 fi
+                 
+                 sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user stop twingate-tray.service 2>/dev/null || true
+                 sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user disable twingate-tray.service 2>/dev/null || true
+               fi
+             done
+             
+             echo "Twingate Tray removed."
+           fi
+           
+           %changelog
+           * $(date +'%a %b %d %Y') Andre Biseth <bisand@gmail.com> - ${VERSION}-1
+           - Release ${VERSION}
+           EOF
           
-          %postun
-          # Only run on complete removal, not on upgrade
-          if [ \$1 -eq 0 ]; then
-            echo "Cleaning up twingate-tray..."
-            
-            # Stop and disable service for all users
-            for user_runtime in /run/user/*; do
-              if [ -d "\$user_runtime" ]; then
-                USER_ID=\$(basename "\$user_runtime")
-                USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
-                
-                # Skip root
-                if [ "\$USERNAME" = "root" ]; then
-                  continue
-                fi
-                
-                sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user stop twingate-tray.service 2>/dev/null || true
-                sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user disable twingate-tray.service 2>/dev/null || true
-              fi
-            done
-            
-            echo "Twingate Tray removed."
-          fi
-          
-          %changelog
-          * $(date +'%a %b %d %Y') Andre Biseth <bisand@gmail.com> - ${VERSION}-1
-          - Release ${VERSION}
-          EOF
+          # Remove leading spaces from spec file (heredoc preserves indentation, but RPM macros need no spaces)
+          sed -i 's/^           //' ~/rpmbuild/SPECS/twingate-tray.spec
           
           # Build RPM
           rpmbuild -bb ~/rpmbuild/SPECS/twingate-tray.spec --target=${{ matrix.rpmarch }}
