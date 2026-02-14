@@ -156,16 +156,16 @@ jobs:
       - name: Create DEB package structure
         run: |
           VERSION="${{ github.event.release.tag_name }}"
-          VERSION="${VERSION#v}"  # Remove 'v' prefix
-          PACKAGE_NAME="twingate-tray_${VERSION}_${{ matrix.debarch }}"
-          
+           VERSION="${VERSION#v}"  # Remove 'v' prefix
+           PACKAGE_NAME="twingate-tray_${VERSION}_${{ matrix.debarch }}"
+           
            mkdir -p ${PACKAGE_NAME}/DEBIAN
            mkdir -p ${PACKAGE_NAME}/usr/local/bin
            mkdir -p ${PACKAGE_NAME}/usr/share/doc/twingate-tray
            mkdir -p ${PACKAGE_NAME}/lib/systemd/user
            mkdir -p ${PACKAGE_NAME}/usr/share/twingate-tray/assets
-          
-          # Copy binary
+           
+           # Copy binary
           cp twingate-tray ${PACKAGE_NAME}/usr/local/bin/
           chmod +x ${PACKAGE_NAME}/usr/local/bin/twingate-tray
           
@@ -173,9 +173,9 @@ jobs:
           cp -r assets/* ${PACKAGE_NAME}/usr/share/twingate-tray/assets/
           
           # Copy documentation
-          cp README.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
-          cp INSTALL.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
-          cp USAGE_GUIDE.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+           cp README.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+           cp INSTALL.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
+           cp USAGE_GUIDE.md ${PACKAGE_NAME}/usr/share/doc/twingate-tray/
            
            # Copy systemd service
            cp twingate-tray.service ${PACKAGE_NAME}/lib/systemd/user/
@@ -205,7 +205,7 @@ jobs:
             - Detailed connection information viewer
           EOF
           
-          # Create postinst script
+           # Create postinst script
            cat > ${PACKAGE_NAME}/DEBIAN/postinst << 'EOF'
            #!/bin/bash
            set -e
@@ -391,9 +391,9 @@ jobs:
           # Create RPM build structure
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           
-          # Create source tarball
-          mkdir -p twingate-tray-${VERSION}
-          cp twingate-tray twingate-tray-${VERSION}/
+           # Create source tarball
+           mkdir -p twingate-tray-${VERSION}
+           cp twingate-tray twingate-tray-${VERSION}/
            cp README.md INSTALL.md USAGE_GUIDE.md twingate-tray.service twingate-tray-${VERSION}/
            cp -r assets twingate-tray-${VERSION}/
            
@@ -431,9 +431,9 @@ jobs:
           %prep
           %setup -q
           
-          %install
-          rm -rf %{buildroot}
-          mkdir -p %{buildroot}/usr/local/bin
+           %install
+           rm -rf %{buildroot}
+           mkdir -p %{buildroot}/usr/local/bin
            mkdir -p %{buildroot}/usr/lib/systemd/user
            mkdir -p %{buildroot}/usr/share/doc/%{name}
            mkdir -p %{buildroot}/usr/share/%{name}/assets
@@ -452,7 +452,7 @@ jobs:
            /usr/share/doc/%{name}/INSTALL.md
            /usr/share/doc/%{name}/USAGE_GUIDE.md
            /usr/share/%{name}/assets/*
-          
+           
            %post
            echo "========================================="
            echo "Twingate Tray installed successfully!"
