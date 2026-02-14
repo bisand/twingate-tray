@@ -206,61 +206,78 @@ jobs:
           EOF
           
           # Create postinst script
-          cat > ${PACKAGE_NAME}/DEBIAN/postinst << 'EOF'
-          #!/bin/bash
-          set -e
-          
-          echo "========================================="
-          echo "Twingate Tray installed successfully!"
-          echo "========================================="
-          echo ""
-          echo "Binary location: /usr/local/bin/twingate-tray"
-          echo ""
-          
-          # Check if GNOME is being used
-          if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "$XDG_CURRENT_DESKTOP" = "ubuntu:GNOME" ]; then
-            echo "GNOME Desktop detected."
-            echo ""
-            echo "Note: GNOME requires the AppIndicator extension for tray icons."
-            echo "If the tray icon doesn't appear, install it with:"
-            echo "  sudo apt install gnome-shell-extension-appindicator"
-            echo "  gnome-extensions enable appindicatorsupport@ubuntu.com"
-            echo ""
-          fi
-          
-          # Check if Twingate CLI is available
-          if ! command -v twingate &> /dev/null; then
-            echo "WARNING: Twingate CLI not found!"
-            echo "Please install Twingate from: https://www.twingate.com/download"
-            echo ""
-          fi
-          
-          # Enable and start the systemd service for all logged-in users
-          # Handle both dpkg and GUI package managers (GNOME Software, etc.)
-          for user_runtime in /run/user/*; do
-            if [ -d "$user_runtime" ]; then
-              USER_ID=$(basename "$user_runtime")
-              USERNAME=$(id -nu "$USER_ID" 2>/dev/null) || continue
-              
-              # Skip root
-              if [ "$USERNAME" = "root" ]; then
-                continue
-              fi
-              
-              echo "Enabling twingate-tray for user $USERNAME..."
-              sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
-              sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
-            fi
-          done
-          
-          echo ""
-          echo "Twingate Tray installed successfully."
-          echo "The tray indicator will start automatically on login."
-          echo ""
-          echo "Documentation: /usr/share/doc/twingate-tray/"
-          echo "========================================="
-          exit 0
-          EOF
+           cat > ${PACKAGE_NAME}/DEBIAN/postinst << 'EOF'
+           #!/bin/bash
+           set -e
+           
+           echo "========================================="
+           echo "Twingate Tray installed successfully!"
+           echo "========================================="
+           echo ""
+           echo "Binary location: /usr/local/bin/twingate-tray"
+           echo ""
+           
+           # Check if GNOME is being used
+           if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "$XDG_CURRENT_DESKTOP" = "ubuntu:GNOME" ]; then
+             echo "GNOME Desktop detected."
+             echo ""
+             echo "Note: GNOME requires the AppIndicator extension for tray icons."
+             echo "If the tray icon doesn't appear, install it with:"
+             echo "  sudo apt install gnome-shell-extension-appindicator"
+             echo "  gnome-extensions enable appindicatorsupport@ubuntu.com"
+             echo ""
+           fi
+           
+           # Check if Twingate CLI is available
+           if ! command -v twingate &> /dev/null; then
+             echo "WARNING: Twingate CLI not found!"
+             echo "Please install Twingate from: https://www.twingate.com/download"
+             echo ""
+           fi
+           
+           # Determine if this is an upgrade or fresh install
+           IS_UPGRADE=false
+           if [ "$1" = "configure" ] && [ -n "$2" ]; then
+             IS_UPGRADE=true
+             echo "Upgrading twingate-tray..."
+           fi
+           
+           # Enable and start the systemd service for all logged-in users
+           # Handle both dpkg and GUI package managers (GNOME Software, etc.)
+           for user_runtime in /run/user/*; do
+             if [ -d "$user_runtime" ]; then
+               USER_ID=$(basename "$user_runtime")
+               USERNAME=$(id -nu "$USER_ID" 2>/dev/null) || continue
+               
+               # Skip root
+               if [ "$USERNAME" = "root" ]; then
+                 continue
+               fi
+               
+               if [ "$IS_UPGRADE" = true ]; then
+                 echo "Restarting twingate-tray for user $USERNAME..."
+                 sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user restart twingate-tray.service 2>/dev/null || true
+               else
+                 echo "Enabling twingate-tray for user $USERNAME..."
+                 sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
+                 sudo -u "$USERNAME" XDG_RUNTIME_DIR="$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
+               fi
+             fi
+           done
+           
+           echo ""
+           if [ "$IS_UPGRADE" = true ]; then
+             echo "Twingate Tray upgraded successfully."
+             echo "The new version is now running."
+           else
+             echo "Twingate Tray installed successfully."
+             echo "The tray indicator will start automatically on login."
+           fi
+           echo ""
+           echo "Documentation: /usr/share/doc/twingate-tray/"
+           echo "========================================="
+           exit 0
+           EOF
           chmod +x ${PACKAGE_NAME}/DEBIAN/postinst
           
           # Create postrm script for cleanup on uninstall
@@ -436,55 +453,72 @@ jobs:
            /usr/share/doc/%{name}/USAGE_GUIDE.md
            /usr/share/%{name}/assets/*
           
-          %post
-          echo "========================================="
-          echo "Twingate Tray installed successfully!"
-          echo "========================================="
-          echo ""
-          echo "Binary location: /usr/local/bin/twingate-tray"
-          echo ""
-          
-          # Check if GNOME is being used
-          if [ "\$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "\$XDG_CURRENT_DESKTOP" = "GNOME-Classic" ]; then
-            echo "GNOME Desktop detected."
-            echo ""
-            echo "Note: GNOME requires the AppIndicator extension for tray icons."
-            echo "If the tray icon doesn't appear, install it with:"
-            echo "  sudo dnf install gnome-shell-extension-appindicator"
-            echo ""
-          fi
-          
-          # Check if Twingate CLI is available
-          if ! command -v twingate &> /dev/null; then
-            echo "WARNING: Twingate CLI not found!"
-            echo "Please install Twingate from: https://www.twingate.com/download"
-            echo ""
-          fi
-          
-          # Enable and start the systemd service for all logged-in users
-          # Handle both dnf/yum and GUI package managers
-          for user_runtime in /run/user/*; do
-            if [ -d "\$user_runtime" ]; then
-              USER_ID=\$(basename "\$user_runtime")
-              USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
-              
-              # Skip root
-              if [ "\$USERNAME" = "root" ]; then
-                continue
-              fi
-              
-              echo "Enabling twingate-tray for user \$USERNAME..."
-              sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
-              sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
-            fi
-          done
-          
-          echo ""
-          echo "Twingate Tray installed successfully."
-          echo "The tray indicator will start automatically on login."
-          echo ""
-          echo "Documentation: /usr/share/doc/twingate-tray/"
-          echo "========================================="
+           %post
+           echo "========================================="
+           echo "Twingate Tray installed successfully!"
+           echo "========================================="
+           echo ""
+           echo "Binary location: /usr/local/bin/twingate-tray"
+           echo ""
+           
+           # Check if GNOME is being used
+           if [ "\$XDG_CURRENT_DESKTOP" = "GNOME" ] || [ "\$XDG_CURRENT_DESKTOP" = "GNOME-Classic" ]; then
+             echo "GNOME Desktop detected."
+             echo ""
+             echo "Note: GNOME requires the AppIndicator extension for tray icons."
+             echo "If the tray icon doesn't appear, install it with:"
+             echo "  sudo dnf install gnome-shell-extension-appindicator"
+             echo ""
+           fi
+           
+           # Check if Twingate CLI is available
+           if ! command -v twingate &> /dev/null; then
+             echo "WARNING: Twingate CLI not found!"
+             echo "Please install Twingate from: https://www.twingate.com/download"
+             echo ""
+           fi
+           
+           # Determine if this is an upgrade (arg $1 = 2) or fresh install (arg $1 = 1)
+           IS_UPGRADE=false
+           if [ \$1 -ge 2 ]; then
+             IS_UPGRADE=true
+             echo "Upgrading twingate-tray..."
+           fi
+           
+           # Enable and start the systemd service for all logged-in users
+           # Handle both dnf/yum and GUI package managers
+           for user_runtime in /run/user/*; do
+             if [ -d "\$user_runtime" ]; then
+               USER_ID=\$(basename "\$user_runtime")
+               USERNAME=\$(id -nu "\$USER_ID" 2>/dev/null) || continue
+               
+               # Skip root
+               if [ "\$USERNAME" = "root" ]; then
+                 continue
+               fi
+               
+               if [ "\$IS_UPGRADE" = true ]; then
+                 echo "Restarting twingate-tray for user \$USERNAME..."
+                 sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user restart twingate-tray.service 2>/dev/null || true
+               else
+                 echo "Enabling twingate-tray for user \$USERNAME..."
+                 sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user enable twingate-tray.service 2>/dev/null || true
+                 sudo -u "\$USERNAME" XDG_RUNTIME_DIR="\$user_runtime" systemctl --user start twingate-tray.service 2>/dev/null || true
+               fi
+             fi
+           done
+           
+           echo ""
+           if [ "\$IS_UPGRADE" = true ]; then
+             echo "Twingate Tray upgraded successfully."
+             echo "The new version is now running."
+           else
+             echo "Twingate Tray installed successfully."
+             echo "The tray indicator will start automatically on login."
+           fi
+           echo ""
+           echo "Documentation: /usr/share/doc/twingate-tray/"
+           echo "========================================="
           
           %postun
           # Only run on complete removal, not on upgrade
