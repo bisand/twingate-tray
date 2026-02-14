@@ -193,11 +193,11 @@ jobs:
           Maintainer: Andre Biseth <bisand@gmail.com>
           Homepage: https://github.com/bisand/twingate-tray
           Description: Twingate System Tray Indicator
-          A lightweight system tray indicator for Twingate VPN on Linux.
-          Displays real-time connection status with a native context menu
-          for managing VPN connections.
-          .
-          Features:
+           A lightweight system tray indicator for Twingate VPN on Linux.
+           Displays real-time connection status with a native context menu
+           for managing VPN connections.
+           .
+           Features:
             - System tray integration via StatusNotifierItem
             - Visual status indicator (connected/disconnected)
             - Native context menu for VPN control
